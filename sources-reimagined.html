@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cohesity DP 2.0 — Sources, reimagined</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f2ec;--surface:#ffffff;--surface-border:#e0dbd2;
+  --ink:#1a1a2e;--ink-3:#6b6b7b;--ink-4:#9a9aab;
+  --green:#00b894;--green-border:rgba(0,184,148,.32);--blue:#4f8fff;--red:#e84430;--amber:#f59e0b;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.04);
+  --p-bg:#0b0f14;--p-surface:#131820;--p-surface-2:#1a212b;
+  --p-border:rgba(255,255,255,.07);--p-border-2:rgba(255,255,255,.12);
+  --p-text:#e7ecf2;--p-text-2:#b8c0cd;--p-muted:#8891a0;--p-dim:#4a5260;
+  --p-green:#00d1a3;--p-cyan:#22d3ee;--p-blue:#60a5fa;--p-red:#ef4444;--p-amber:#f59e0b;--p-purple:#a78bfa;
+  --mono:'DM Mono',monospace;--display:'Plus Jakarta Sans',sans-serif;--body:'Outfit',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);width:100vw;height:100vh;-webkit-font-smoothing:antialiased;display:flex;align-items:center;justify-content:center}
+
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,184,148,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,184,148,.04) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.bg-blob{position:fixed;border-radius:50%;filter:blur(150px);opacity:.07;pointer-events:none;z-index:0}
+.blob1{width:560px;height:560px;background:var(--green);top:-160px;right:-80px;animation:bd 14s ease-in-out infinite alternate}
+.blob2{width:480px;height:480px;background:var(--blue);bottom:-140px;left:-80px;animation:bd 18s ease-in-out infinite alternate-reverse}
+@keyframes bd{from{transform:translate(0,0) scale(1)}to{transform:translate(40px,28px) scale(1.1)}}
+
+.progress-bar{position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--green),var(--blue));z-index:200;box-shadow:0 0 10px var(--green)}
+
+/* Slide */
+.slide{position:relative;z-index:1;width:100%;max-width:1340px;padding:0 52px;display:grid;grid-template-columns:1fr 1.15fr;gap:48px;align-items:center}
+
+.slide-header{position:fixed;top:22px;left:56px;right:56px;display:flex;align-items:center;justify-content:space-between;z-index:10}
+.brand{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);display:flex;align-items:center;gap:8px}
+.brand-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+.slide-tag{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4)}
+.corner-dec{position:fixed;bottom:28px;right:56px;font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);opacity:.28}
+
+/* ─── COPY COL ─── */
+.copy-col{display:flex;flex-direction:column;gap:22px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--green);font-weight:700;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:'';width:28px;height:1px;background:var(--green)}
+.headline{font-family:var(--display);font-size:clamp(34px,3.6vw,52px);font-weight:800;line-height:1.05;letter-spacing:-.03em;color:var(--ink)}
+.headline strong{color:var(--green)}
+.subline{font-size:15.5px;color:var(--ink-3);line-height:1.65;max-width:42ch}
+.subline b{color:var(--ink);font-weight:600}
+
+.replaces-pill{display:inline-flex;align-items:center;gap:10px;padding:6px 14px;background:var(--surface);border:1px solid var(--surface-border);border-radius:100px;width:fit-content;box-shadow:var(--shadow-sm)}
+.rep-label{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-4);font-weight:600}
+.rep-val{font-family:var(--display);font-size:12px;font-weight:600;color:var(--ink-3);text-decoration:line-through;text-decoration-color:var(--red);text-decoration-thickness:1.5px}
+
+.points{list-style:none;display:flex;flex-direction:column;gap:12px}
+.points li{font-size:14px;color:var(--ink-3);line-height:1.6;padding-left:18px;position:relative}
+.points li::before{content:'';position:absolute;left:0;top:8px;width:7px;height:7px;background:var(--green);border-radius:2px}
+.points li b{color:var(--ink);font-weight:700}
+
+.user-voice{display:inline-flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;row-gap:4px;padding:10px 16px 10px 18px;background:var(--surface);border:1px dashed var(--green-border);border-radius:14px;box-shadow:var(--shadow-sm);width:fit-content}
+.uv-quote{font-family:var(--display);font-size:13px;color:var(--ink);font-style:italic;font-weight:500;line-height:1.45;letter-spacing:-.005em;position:relative;padding-left:20px;flex:1 1 auto;min-width:0}
+.uv-quote::before{content:'\201C';position:absolute;left:0;top:-2px;font-family:var(--display);font-size:26px;font-weight:800;color:var(--green);font-style:normal;line-height:1}
+.uv-attr{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);font-weight:600;white-space:nowrap;flex-shrink:0;padding-left:20px}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.copy-col .user-voice{opacity:0;animation:fadeUp .5s ease forwards .03s}
+.copy-col .eyebrow{opacity:0;animation:fadeUp .5s ease forwards .08s}
+.copy-col .headline{opacity:0;animation:fadeUp .5s ease forwards .18s}
+.copy-col .subline{opacity:0;animation:fadeUp .5s ease forwards .28s}
+.copy-col .replaces-pill{opacity:0;animation:fadeUp .5s ease forwards .35s}
+.copy-col .points{opacity:0;animation:fadeUp .5s ease forwards .42s}
+
+/* ─── STAGE / CARDS ─── */
+.stage{position:relative;display:flex;flex-direction:column;gap:18px;min-height:640px}
+.stage::before{content:'';position:absolute;inset:-40px;background:radial-gradient(ellipse at 55% 45%,rgba(0,184,148,.1) 0%,rgba(79,143,255,.05) 40%,transparent 70%);pointer-events:none;z-index:0}
+.card{position:relative;z-index:1;background:var(--p-bg);border:1px solid var(--p-border);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.32);color:var(--p-text);overflow:hidden}
+.card.fleet{opacity:0;animation:fadeUp .6s cubic-bezier(.2,.8,.4,1) forwards .25s}
+.card.drill{opacity:0;animation:fadeUp .6s cubic-bezier(.2,.8,.4,1) forwards .55s;border-color:rgba(96,165,250,.22);box-shadow:0 24px 60px rgba(0,0,0,.4),0 0 0 1px rgba(96,165,250,.08)}
+
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid rgba(255,255,255,.06)}
+.card-head-l{display:flex;flex-direction:column;gap:2px}
+.card-title{font-family:var(--display);font-size:13px;font-weight:800;color:var(--p-text);letter-spacing:-.01em}
+.card-sub{font-family:var(--mono);font-size:8.5px;color:var(--p-muted);letter-spacing:.06em;text-transform:uppercase}
+.live-badge{font-family:var(--mono);font-size:9px;letter-spacing:.08em;font-weight:800;color:var(--p-green);background:rgba(0,209,163,.1);border:1px solid rgba(0,209,163,.25);padding:4px 10px;border-radius:100px;display:inline-flex;align-items:center;gap:5px}
+.live-dot{width:5px;height:5px;border-radius:50%;background:var(--p-green);box-shadow:0 0 6px rgba(0,209,163,.7);animation:livePulse 1.6s ease-in-out infinite}
+@keyframes livePulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* AI banner inline on card */
+.ai-banner{display:flex;align-items:flex-start;gap:9px;padding:10px 14px;background:rgba(99,102,241,.06);border-bottom:1px solid rgba(99,102,241,.18);font-size:11.5px;color:var(--p-text-2);line-height:1.5}
+.ai-banner .ai-spark{font-size:13px;color:#a5b4fc;line-height:1;margin-top:1px}
+.ai-banner b{color:var(--p-text)}
+.ai-banner .ai-eb{font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#a5b4fc;margin-right:4px}
+
+/* Glance bar — KPIs row */
+.glance{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid rgba(255,255,255,.05)}
+.gl{padding:10px 14px;border-right:1px solid rgba(255,255,255,.04);display:flex;flex-direction:column;gap:3px}
+.gl:last-child{border-right:none}
+.gl-lbl{font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--p-dim)}
+.gl-v{font-family:var(--display);font-size:18px;font-weight:800;color:var(--p-text);letter-spacing:-.02em;line-height:1}
+.gl-d{font-family:var(--mono);font-size:8.5px;color:var(--p-muted);letter-spacing:.04em}
+.gl-d.up{color:var(--p-green)}
+.gl-d.down{color:#fca5a5}
+
+/* Source rows */
+.src-list{padding:6px 8px 10px;display:flex;flex-direction:column;gap:6px}
+.src-row{display:grid;grid-template-columns:24px 1.4fr 90px 1fr 80px 70px;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);transition:background .2s}
+.src-row:hover{background:rgba(255,255,255,.04)}
+.src-row.active{background:rgba(96,165,250,.06);border-color:rgba(96,165,250,.25)}
+.src-ic{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;font-weight:800}
+.src-name{display:flex;flex-direction:column;gap:1px;min-width:0}
+.src-name .n{font-family:var(--display);font-size:11.5px;font-weight:800;color:var(--p-text);letter-spacing:-.01em}
+.src-name .m{font-family:var(--mono);font-size:8.5px;color:var(--p-muted);letter-spacing:.04em}
+.src-data{font-family:var(--display);font-size:11.5px;font-weight:800;color:var(--p-text);text-align:right}
+.src-data .sub{display:block;font-family:var(--mono);font-size:8px;color:var(--p-muted);font-weight:500;letter-spacing:.04em;margin-top:1px}
+/* Coverage bar */
+.cov{display:flex;flex-direction:column;gap:3px}
+.cov-track{height:6px;border-radius:3px;background:rgba(255,255,255,.05);overflow:hidden;display:flex}
+.cov-on{background:#00d1a3}
+.cov-warn{background:#f59e0b}
+.cov-off{background:#ef4444}
+.cov-meta{font-family:var(--mono);font-size:8px;color:var(--p-muted);display:flex;align-items:center;gap:6px;letter-spacing:.04em}
+.cov-meta .ok{color:var(--p-green)}
+.cov-meta .bad{color:#fca5a5}
+/* Sparkline */
+.spark{height:22px;display:block}
+/* Status pill */
+.stp{font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:.08em;padding:3px 8px;border-radius:99px;text-align:center;text-transform:uppercase}
+.stp.ok{background:rgba(0,209,163,.1);color:var(--p-green);border:1px solid rgba(0,209,163,.28)}
+.stp.warn{background:rgba(245,158,11,.1);color:var(--p-amber);border:1px solid rgba(245,158,11,.28)}
+.stp.bad{background:rgba(239,68,68,.1);color:#fca5a5;border:1px solid rgba(239,68,68,.28)}
+
+/* Drill-in card content */
+.drill-body{padding:14px 18px;display:flex;flex-direction:column;gap:14px}
+.drill-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:14px}
+
+.ts-card{padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);display:flex;flex-direction:column;gap:6px}
+.ts-head{display:flex;align-items:center;justify-content:space-between}
+.ts-eb{font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--p-dim)}
+.ts-val{font-family:var(--display);font-size:14px;font-weight:800;color:var(--p-text);letter-spacing:-.01em}
+.ts-delta{font-family:var(--mono);font-size:9px;font-weight:800;color:var(--p-green);letter-spacing:.04em}
+.ts-delta.up{color:var(--p-green)}
+.ts-delta.down{color:#fca5a5}
+
+/* Snapshot heatmap (mini) */
+.mini-heat{padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05)}
+.mh-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.mh-grid{display:grid;grid-template-columns:repeat(28,1fr);gap:2px}
+.tile{height:12px;border-radius:2px}
+.tile.g{background:#00c896}.tile.r{background:#ef4444}.tile.a{background:#f59e0b}.tile.m{background:rgba(255,255,255,.08)}
+.mh-x{display:flex;justify-content:space-between;font-family:var(--mono);font-size:7.5px;color:var(--p-dim);letter-spacing:.04em;margin-top:5px}
+
+/* AI-at-glance pinned card */
+.ai-pin{padding:10px 12px;border-radius:10px;background:linear-gradient(180deg,rgba(99,102,241,.08),rgba(99,102,241,.03));border:1px solid rgba(99,102,241,.25);display:flex;flex-direction:column;gap:7px}
+.aip-row{display:flex;align-items:flex-start;gap:7px;font-size:10.5px;color:var(--p-text-2);line-height:1.5}
+.aip-row .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:6px}
+
+/* ─── STITCH NAV ─── */
+.stitch-nav{position:fixed;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--surface-border);border-radius:100px;padding:5px 7px;box-shadow:0 4px 20px rgba(0,0,0,.06);z-index:60;font-family:var(--mono)}
+.st-tab{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-4);padding:6px 13px;border-radius:100px;font-weight:700;text-decoration:none;transition:color .2s,background .25s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer}
+.st-tab:hover{color:var(--ink)}
+.st-tab.active{color:#fff;background:var(--green);box-shadow:0 1px 4px rgba(0,184,148,.2);position:relative}
+.st-tab.active::before{content:'';position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:stitchDot 2.2s ease-in-out infinite}
+@keyframes stitchDot{0%,100%{opacity:1;transform:translateX(-50%) scale(1)}50%{opacity:.45;transform:translateX(-50%) scale(1.35)}}
+.st-sub{font-size:8.5px;letter-spacing:.1em;opacity:.78;font-weight:600}
+.st-tab.active .st-sub{opacity:.92}
+.st-sep{color:var(--ink-4);opacity:.35;font-size:10px;user-select:none}
+
+.stitch-bottom-nav{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;z-index:100;background:rgba(245,242,236,.92);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid var(--surface-border);border-radius:100px;padding:9px 22px;box-shadow:0 4px 20px rgba(0,0,0,.06)}
+.stitch-bottom-nav button{background:none;border:none;color:var(--ink-4);cursor:pointer;font-size:16px;padding:4px 8px;transition:color .2s;font-family:inherit}
+.stitch-bottom-nav button:hover{color:var(--green)}
+.stitch-bottom-nav .lbl{font-family:var(--mono);font-size:10px;color:var(--ink-4);padding:0 4px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}
+</style>
+</head>
+<body>
+<div class="stitch-nav">
+  <a class="st-tab" href="vision-opening_1.html">Vision</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="a0.html">Discover</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="0.html">Protect</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="1.html">Monitor</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="4.html">Recover</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab active" href="sources-reimagined.html">Examples <span class="st-sub">Sources</span></a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="5.html">Additionals</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="conclusion.html">Closing</a>
+</div>
+<div class="bg-grid"></div>
+<div class="bg-blob blob1"></div>
+<div class="bg-blob blob2"></div>
+<div class="progress-bar"></div>
+
+<div class="slide-header">
+  <div class="brand"><span class="brand-dot"></span>Cohesity DP 2.0</div>
+  <div class="slide-tag">Show, don't tell &middot; Sources, reimagined</div>
+</div>
+
+<div class="slide">
+
+  <!-- ── LEFT: COPY ── -->
+  <div class="copy-col">
+    <div class="user-voice">
+      <span class="uv-quote">The current sources page tells me how many are protected. It tells me nothing about what I have.</span>
+      <span class="uv-attr">&mdash; cloud lead</span>
+    </div>
+
+    <div class="eyebrow">Example &middot; AI at every level</div>
+
+    <h1 class="headline">Sources, but with<br><strong>actual signal</strong>.</h1>
+
+    <p class="subline">A sources page should answer the questions a user is <i>about</i> to ask &mdash; how much data is here, how is it growing, what's at risk &mdash; not just count rows. <b>Same primitives, richer viz, AI inline at every depth.</b></p>
+
+    <div class="replaces-pill">
+      <span class="rep-label">Replaces</span>
+      <span class="rep-val">protected vs unprotected counts</span>
+    </div>
+
+    <ul class="points">
+      <li><b>Fleet glance.</b> Total protected data, growth, untagged workloads &mdash; not just N sources.</li>
+      <li><b>Per-source signal.</b> Sparkline, coverage bar, status pill &mdash; the shape of health, not a number.</li>
+      <li><b>AI inline at every depth.</b> A glance-bar banner at fleet level, anomaly call-outs at source level.</li>
+      <li><b>Drill-in is one click.</b> Time-series, snapshot heatmap, AI insights pinned on the right.</li>
+    </ul>
+  </div>
+
+  <!-- ── RIGHT: STAGE ── -->
+  <div class="stage">
+
+    <!-- ═══ FLEET CARD ═══ -->
+    <div class="card fleet">
+      <div class="card-head">
+        <div class="card-head-l">
+          <div class="card-title">Sources &middot; fleet</div>
+          <div class="card-sub">All clouds &middot; all workloads &middot; one surface</div>
+        </div>
+        <div class="live-badge"><span class="live-dot"></span>Live</div>
+      </div>
+
+      <!-- Fleet-level AI banner -->
+      <div class="ai-banner">
+        <span class="ai-spark">&#10022;</span>
+        <div><span class="ai-eb">AI &middot; fleet</span><span><b>aws-prod-01</b> grew <b>+22% (47 new EC2s)</b> this week &mdash; <b>12 untagged</b>, of which <span style="color:#fca5a5"><b>3 contain PII</b></span>. Recommend &ldquo;auto-protect&rdquo; rule.</span></div>
+      </div>
+
+      <!-- Glance bar — fleet KPIs -->
+      <div class="glance">
+        <div class="gl"><div class="gl-lbl">Sources</div><div class="gl-v">7</div><div class="gl-d">2 clouds &middot; 1 on-prem</div></div>
+        <div class="gl"><div class="gl-lbl">Protected data</div><div class="gl-v">18.4 TB</div><div class="gl-d up">&uarr; +1.2 TB / 7d</div></div>
+        <div class="gl"><div class="gl-lbl">Coverage</div><div class="gl-v">94<span style="font-size:11px;color:var(--p-muted)">%</span></div><div class="gl-d down">12 untagged</div></div>
+        <div class="gl"><div class="gl-lbl">Risk</div><div class="gl-v" style="color:#fca5a5">3</div><div class="gl-d down">PII outside policy</div></div>
+      </div>
+
+      <!-- Source rows: per-source viz -->
+      <div class="src-list">
+        <div class="src-row active">
+          <div class="src-ic" style="background:linear-gradient(135deg,#f59e0b,#ef4444)">A</div>
+          <div class="src-name"><span class="n">aws-prod-01</span><span class="m">us-east-1 &middot; 142 workloads</span></div>
+          <div class="src-data">8.2 TB<span class="sub">+22% / 7d</span></div>
+          <div class="cov">
+            <div class="cov-track"><div class="cov-on" style="width:78%"></div><div class="cov-warn" style="width:8%"></div><div class="cov-off" style="width:14%"></div></div>
+            <div class="cov-meta"><span class="ok">110 protected</span><span>&middot;</span><span>20 partial</span><span>&middot;</span><span class="bad">12 untagged</span></div>
+          </div>
+          <svg class="spark" viewBox="0 0 80 22" preserveAspectRatio="none">
+            <path d="M2,18 L12,16 L22,17 L32,14 L42,12 L52,10 L62,7 L72,5 L78,3" fill="none" stroke="#fca5a5" stroke-width="1.6" stroke-linecap="round"/>
+            <circle cx="78" cy="3" r="2" fill="#fca5a5"/>
+          </svg>
+          <span class="stp warn">at risk</span>
+        </div>
+
+        <div class="src-row">
+          <div class="src-ic" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8)">M</div>
+          <div class="src-name"><span class="n">m365-legal-tenant</span><span class="m">SaaS &middot; 38 workloads</span></div>
+          <div class="src-data">4.6 TB<span class="sub">+3% / 7d</span></div>
+          <div class="cov">
+            <div class="cov-track"><div class="cov-on" style="width:100%"></div></div>
+            <div class="cov-meta"><span class="ok">38 protected</span><span>&middot;</span><span>0 untagged</span></div>
+          </div>
+          <svg class="spark" viewBox="0 0 80 22" preserveAspectRatio="none"><path d="M2,16 L12,16 L22,15 L32,16 L42,15 L52,15 L62,15 L72,14 L78,14" fill="none" stroke="#00d1a3" stroke-width="1.6" stroke-linecap="round"/><circle cx="78" cy="14" r="2" fill="#00d1a3"/></svg>
+          <span class="stp ok">healthy</span>
+        </div>
+
+        <div class="src-row">
+          <div class="src-ic" style="background:linear-gradient(135deg,#a78bfa,#7c3aed)">O</div>
+          <div class="src-name"><span class="n">orcl-prod-erp</span><span class="m">on-prem &middot; 12 workloads</span></div>
+          <div class="src-data">2.1 TB<span class="sub">+9% / 7d</span></div>
+          <div class="cov">
+            <div class="cov-track"><div class="cov-on" style="width:92%"></div><div class="cov-off" style="width:8%"></div></div>
+            <div class="cov-meta"><span class="ok">11 protected</span><span>&middot;</span><span class="bad">1 broken chain</span></div>
+          </div>
+          <svg class="spark" viewBox="0 0 80 22" preserveAspectRatio="none"><path d="M2,17 L12,16 L22,15 L32,15 L42,14 L52,14 L62,12 L72,3 L78,4" fill="none" stroke="#f59e0b" stroke-width="1.6" stroke-linecap="round"/><circle cx="72" cy="3" r="2" fill="#f59e0b"/></svg>
+          <span class="stp warn">spike</span>
+        </div>
+
+        <div class="src-row">
+          <div class="src-ic" style="background:linear-gradient(135deg,#22d3ee,#0891b2)">F</div>
+          <div class="src-name"><span class="n">finance-nas</span><span class="m">on-prem &middot; 6 volumes</span></div>
+          <div class="src-data">2.8 TB<span class="sub">+0.4% / 7d</span></div>
+          <div class="cov">
+            <div class="cov-track"><div class="cov-on" style="width:100%"></div></div>
+            <div class="cov-meta"><span class="ok">6 volumes</span><span>&middot;</span><span>all in PCI policy</span></div>
+          </div>
+          <svg class="spark" viewBox="0 0 80 22" preserveAspectRatio="none"><path d="M2,15 L12,15 L22,15 L32,14 L42,15 L52,15 L62,14 L72,15 L78,15" fill="none" stroke="#00d1a3" stroke-width="1.6" stroke-linecap="round"/><circle cx="78" cy="15" r="2" fill="#00d1a3"/></svg>
+          <span class="stp ok">healthy</span>
+        </div>
+
+        <div class="src-row">
+          <div class="src-ic" style="background:linear-gradient(135deg,#a855f7,#6366f1)">K</div>
+          <div class="src-name"><span class="n">k8s-app-config</span><span class="m">prod &middot; 24 namespaces</span></div>
+          <div class="src-data">680 GB<span class="sub">+1% / 7d</span></div>
+          <div class="cov">
+            <div class="cov-track"><div class="cov-on" style="width:88%"></div><div class="cov-warn" style="width:12%"></div></div>
+            <div class="cov-meta"><span class="ok">21 protected</span><span>&middot;</span><span style="color:var(--p-amber)">3 partial</span></div>
+          </div>
+          <svg class="spark" viewBox="0 0 80 22" preserveAspectRatio="none"><path d="M2,15 L12,16 L22,14 L32,15 L42,14 L52,13 L62,14 L72,13 L78,12" fill="none" stroke="#00d1a3" stroke-width="1.6" stroke-linecap="round"/><circle cx="78" cy="12" r="2" fill="#00d1a3"/></svg>
+          <span class="stp ok">healthy</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ DRILL-IN CARD ═══ -->
+    <div class="card drill">
+      <div class="card-head">
+        <div class="card-head-l">
+          <div class="card-title">aws-prod-01 &middot; drill-in</div>
+          <div class="card-sub">Fleet glance &rarr; one source &middot; same lens, deeper depth</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:8.5px;letter-spacing:.06em;color:var(--p-muted)">AWS &middot; us-east-1</div>
+      </div>
+
+      <div class="drill-body">
+
+        <!-- Time-series glance -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <div class="ts-card">
+            <div class="ts-head"><span class="ts-eb">Source size</span><span class="ts-delta up">+22%</span></div>
+            <div class="ts-val">8.2 TB</div>
+            <svg class="spark" viewBox="0 0 90 22" preserveAspectRatio="none"><path d="M2,18 L14,16 L26,15 L38,12 L50,10 L62,7 L74,5 L88,3" fill="none" stroke="#60a5fa" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <div class="ts-card">
+            <div class="ts-head"><span class="ts-eb">Workloads</span><span class="ts-delta up">+47</span></div>
+            <div class="ts-val">142</div>
+            <svg class="spark" viewBox="0 0 90 22" preserveAspectRatio="none"><path d="M2,18 L14,18 L26,17 L38,15 L50,13 L62,10 L74,8 L88,5" fill="none" stroke="#34d399" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <div class="ts-card">
+            <div class="ts-head"><span class="ts-eb">Untagged</span><span class="ts-delta down">+12</span></div>
+            <div class="ts-val" style="color:#fca5a5">12</div>
+            <svg class="spark" viewBox="0 0 90 22" preserveAspectRatio="none"><path d="M2,18 L14,18 L26,17 L38,17 L50,15 L62,12 L74,9 L88,5" fill="none" stroke="#fca5a5" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+          <div class="ts-card">
+            <div class="ts-head"><span class="ts-eb">PII volume</span><span class="ts-delta down">+34%</span></div>
+            <div class="ts-val">1.4M</div>
+            <svg class="spark" viewBox="0 0 90 22" preserveAspectRatio="none"><path d="M2,18 L14,16 L26,15 L38,15 L50,13 L62,11 L74,7 L88,3" fill="none" stroke="#f59e0b" stroke-width="1.6" stroke-linecap="round"/></svg>
+          </div>
+        </div>
+
+        <div class="drill-grid">
+          <!-- Snapshot heatmap mini -->
+          <div class="mini-heat">
+            <div class="mh-head">
+              <div><div style="font-family:var(--display);font-size:11px;font-weight:800;color:var(--p-text)">Snapshot health &middot; 28d</div><div style="font-family:var(--mono);font-size:8px;color:var(--p-muted);letter-spacing:.06em;text-transform:uppercase;margin-top:1px">Daily overview &middot; aggregate of 142 workloads</div></div>
+              <span class="stp warn" style="font-size:8px">3 anomalies</span>
+            </div>
+            <div class="mh-grid">
+              <div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div>
+              <div class="tile g"></div><div class="tile g"></div><div class="tile a"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div>
+              <div class="tile g"></div><div class="tile r"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile a"></div><div class="tile g"></div>
+              <div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile r"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div>
+            </div>
+            <div class="mh-x"><span>4w ago</span><span>3w</span><span>2w</span><span>1w</span><span>today</span></div>
+          </div>
+
+          <!-- AI pinned at glance bar -->
+          <div class="ai-pin">
+            <div style="display:flex;align-items:center;gap:6px"><span style="font-size:13px;color:#a5b4fc">&#10022;</span><span style="font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#a5b4fc">AI &middot; pinned at glance bar</span></div>
+            <div class="aip-row"><span class="dot" style="background:#fca5a5"></span><span><b>Source mutation:</b> 47 new EC2s in 7 days &mdash; right-sized infra event or sprawl?</span></div>
+            <div class="aip-row"><span class="dot" style="background:#fcd34d"></span><span><b>Snapshot mutation:</b> 3 anomalies in 28d &mdash; all on payroll-* hosts. Investigate before promoting.</span></div>
+            <div class="aip-row"><span class="dot" style="background:#a5b4fc"></span><span><b>File mutation:</b> PII columns in <span style="font-family:var(--mono);font-size:9.5px;color:var(--p-text-2)">vendor_master</span> grew +34% &mdash; recommend tightening to PCI DSS v4.0.</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /stage -->
+
+</div><!-- /slide -->
+
+<div class="corner-dec">Cohesity DP 2.0 &middot; Sources, reimagined &middot; show-don't-tell</div>
+
+<div class="stitch-bottom-nav">
+  <button onclick="prevFile()" aria-label="Previous">&larr;</button>
+  <span class="lbl">Examples &middot; Sources</span>
+  <button onclick="nextFile()" aria-label="Next">&rarr;</button>
+</div>
+
+<script>
+window.STITCH = {prev:'4.html', next:'5.html'};
+function nextFile(){ if(window.STITCH.next) location.href=window.STITCH.next; }
+function prevFile(){ if(window.STITCH.prev) location.href=window.STITCH.prev+'?last=1'; }
+document.addEventListener('keydown', function(e){
+  if(e.key==='ArrowRight'||e.key===' '){e.preventDefault();nextFile();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();prevFile();}
+});
+var tx=0;
+document.addEventListener('touchstart',function(e){tx=e.touches[0].clientX;});
+document.addEventListener('touchend',function(e){var dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50){ if(dx<0) nextFile(); else prevFile(); }});
+</script>
+</body>
+</html>

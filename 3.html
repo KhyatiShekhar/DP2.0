@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataProtect 2.0 — Snapshot Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f2ec;--surface:#ffffff;--surface-2:#eeeae3;--surface-border:#e0dbd2;
+  --ink:#1a1a2e;--ink-2:#3d3d4d;--ink-3:#6b6b7b;--ink-4:#9a9aab;
+  --green:#00b894;--green-bg:rgba(0,184,148,.06);--green-border:rgba(0,184,148,.22);
+  --red:#e84430;--blue:#4f8fff;--amber:#f59e0b;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.04);--shadow-md:0 4px 20px rgba(0,0,0,.06);
+
+  --p-bg:#0b0f14;--p-surface:#151a22;--p-surface-2:#1b2029;
+  --p-border:rgba(255,255,255,.08);--p-border-2:rgba(255,255,255,.14);
+  --p-text:#e7ecf2;--p-text-2:#b8c0cd;--p-muted:#8891a0;--p-dim:#5a6370;
+  --p-green:#00d1a3;--p-amber:#f59e0b;--p-red:#ef4444;--p-blue:#60a5fa;--p-purple:#a78bfa;
+
+  --mono:'DM Mono',monospace;--display:'Plus Jakarta Sans',sans-serif;--body:'Outfit',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidden;height:100vh;width:100vw;-webkit-font-smoothing:antialiased}
+.deck{width:100%;height:100vh;position:relative}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px 56px 80px;opacity:0;pointer-events:none;transition:opacity .5s ease;overflow-y:auto;overflow-x:hidden;background:var(--bg)}
+.slide.active{opacity:1;pointer-events:all}
+
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,184,148,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,184,148,.04) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.bg-blob{position:fixed;border-radius:50%;filter:blur(140px);opacity:.08;pointer-events:none;z-index:0}
+.blob1{width:600px;height:600px;background:var(--green);top:-200px;right:-100px;animation:bd 14s ease-in-out infinite alternate}
+.blob2{width:500px;height:500px;background:var(--blue);bottom:-150px;left:-100px;animation:bd 18s ease-in-out infinite alternate-reverse}
+@keyframes bd{from{transform:translate(0,0) scale(1)}to{transform:translate(40px,30px) scale(1.1)}}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+@keyframes slideInL{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideInR{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
+@keyframes barRise{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes ringFill96{from{stroke-dasharray:0 596.9;opacity:0}to{stroke-dasharray:573.45 596.9;opacity:1}}
+@keyframes scoreIn{from{transform:scale(.55);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes bigNumIn{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes rowSlide{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
+@keyframes lineGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes livePulse{0%,100%{box-shadow:0 0 0 0 rgba(0,209,163,.6)}50%{box-shadow:0 0 0 6px rgba(0,209,163,0)}}
+@keyframes redPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.6)}50%{box-shadow:0 0 0 7px rgba(239,68,68,0)}}
+@keyframes redGlow{0%,100%{box-shadow:0 0 22px rgba(239,68,68,.5)}50%{box-shadow:0 0 36px rgba(239,68,68,.85)}}
+
+.slide.active .anim-1{animation:fadeUp .5s ease forwards .1s;opacity:0}
+.slide.active .anim-2{animation:fadeUp .5s ease forwards .2s;opacity:0}
+.slide.active .anim-3{animation:fadeUp .5s ease forwards .3s;opacity:0}
+.slide.active .anim-4{animation:fadeUp .5s ease forwards .4s;opacity:0}
+.slide.active .anim-fi1{animation:fadeIn .6s ease forwards .25s;opacity:0}
+.slide.active .anim-fi2{animation:fadeIn .6s ease forwards .35s;opacity:0}
+.slide.active .anim-fi3{animation:fadeIn .6s ease forwards .45s;opacity:0}
+.slide.active .anim-fi4{animation:fadeIn .6s ease forwards .55s;opacity:0}
+
+/* ─── NAV ─── */
+.nav{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;z-index:100;background:rgba(245,242,236,.92);backdrop-filter:blur(16px);border:1px solid var(--surface-border);border-radius:100px;padding:9px 22px;box-shadow:var(--shadow-md)}
+.nav button{background:none;border:none;color:var(--ink-4);cursor:pointer;font-size:16px;padding:4px 8px;transition:color .2s;font-family:var(--body)}
+.nav button:hover{color:var(--green)}
+.nav .dots{display:flex;gap:6px;align-items:center}
+.nav .dot{width:6px;height:6px;border-radius:50%;background:var(--surface-border);transition:all .3s;cursor:pointer}
+.nav .dot.active{background:var(--green);width:18px;border-radius:4px}
+.slide-counter{font-family:var(--mono);font-size:10px;color:var(--ink-4);min-width:44px;text-align:center}
+.progress-bar{position:fixed;top:0;left:0;height:2px;background:var(--green);transition:width .5s ease;z-index:200;box-shadow:0 0 10px var(--green)}
+
+/* ─── HEADER / CORNER ─── */
+.slide-header{position:absolute;top:22px;left:56px;right:56px;display:flex;align-items:center;justify-content:space-between;z-index:10}
+.brand{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);display:flex;align-items:center;gap:8px}
+.brand-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+.slide-tag{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4)}
+.corner-dec{position:absolute;bottom:88px;right:56px;font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);opacity:.35}
+
+/* ═══════════════════════════════════════════════════════
+   INTRO
+   ═══════════════════════════════════════════════════════ */
+.intro-wrap{max-width:1120px;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center}
+.intro-eb{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--green);font-weight:700}
+.intro-title{font-family:var(--display);font-size:clamp(42px,5vw,72px);font-weight:800;line-height:1.02;letter-spacing:-.03em;color:var(--ink);margin-top:18px;max-width:16ch}
+.intro-title strong{color:var(--green)}
+.intro-sub{font-size:clamp(16px,1.4vw,20px);color:var(--ink-3);line-height:1.55;margin-top:22px;max-width:60ch}
+.intro-sub b{color:var(--ink);font-weight:700}
+.intro-chips{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:980px;width:100%;margin-top:46px}
+.intro-chip{background:var(--surface);border:1px solid var(--surface-border);border-radius:16px;padding:22px 22px 20px;text-align:left;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden;transition:all .25s}
+.intro-chip:hover{border-color:var(--green-border);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+.intro-chip::after{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--green);opacity:0;transition:opacity .25s}
+.intro-chip:hover::after{opacity:1}
+.intro-chip .num{font-family:var(--mono);font-size:11px;letter-spacing:.22em;color:var(--green);font-weight:700}
+.intro-chip .name{font-family:var(--display);font-size:24px;font-weight:800;letter-spacing:-.02em;color:var(--ink);margin-top:2px}
+.intro-chip .desc{font-size:13px;color:var(--ink-3);line-height:1.55;margin-top:6px}
+.intro-chip .count{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--ink-4);margin-top:auto;padding-top:10px;text-transform:uppercase}
+
+/* ═══════════════════════════════════════════════════════
+   WIDGET SHOWCASE LAYOUT (two-col)
+   ═══════════════════════════════════════════════════════ */
+.w-layout{display:grid;grid-template-columns:1fr 1fr;gap:72px;width:100%;max-width:1320px;align-items:center;min-height:560px}
+.w-copy{display:flex;flex-direction:column;gap:20px;max-width:500px}
+.w-eb{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--green);font-weight:700;display:flex;align-items:center;gap:10px}
+.w-eb::before{content:'';width:28px;height:1px;background:var(--green)}
+.w-title{font-family:var(--display);font-size:clamp(32px,3.6vw,50px);font-weight:800;line-height:1.05;letter-spacing:-.028em;color:var(--ink)}
+.w-title strong{color:var(--green)}
+.w-sub{font-size:17px;color:var(--ink-3);line-height:1.55;max-width:40ch}
+.w-sub b{color:var(--ink-2);font-weight:600}
+.w-replaces{display:inline-flex;align-items:center;gap:10px;padding:7px 14px;background:var(--surface);border:1px solid var(--surface-border);border-radius:100px;width:fit-content;box-shadow:var(--shadow-sm);margin-top:4px}
+.w-replaces-eb{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-4);font-weight:600}
+.w-replaces-txt{font-family:var(--display);font-size:12px;font-weight:600;color:var(--ink-3);text-decoration:line-through;text-decoration-color:var(--red);text-decoration-thickness:1.5px}
+.w-points{list-style:none;display:flex;flex-direction:column;gap:10px;margin-top:8px}
+.w-points li{font-size:14px;color:var(--ink-3);line-height:1.5;padding-left:20px;position:relative}
+.w-points li::before{content:'';position:absolute;left:0;top:8px;width:8px;height:8px;background:var(--green);border-radius:2px}
+.w-points li b{color:var(--ink);font-weight:700}
+
+.w-stage{display:flex;justify-content:center;align-items:center;position:relative;min-height:500px}
+.w-stage::before{content:'';position:absolute;inset:-40px;background:radial-gradient(circle at center,rgba(0,184,148,.09),transparent 65%);pointer-events:none;z-index:0}
+.w-stage-inner{position:relative;z-index:1}
+
+/* ═══════════════════════════════════════════════════════
+   WIDGET 1 — SNAPSHOT ESTATE OVERVIEW
+   ═══════════════════════════════════════════════════════ */
+.snap-estate{width:480px;background:var(--p-bg);border:1px solid var(--p-border);border-radius:20px;padding:24px 26px;display:flex;flex-direction:column;gap:14px;color:var(--p-text);box-shadow:0 40px 100px rgba(0,0,0,.22),0 0 0 1px rgba(96,165,250,.06)}
+.se-head{display:flex;justify-content:space-between;align-items:center}
+.se-title{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--p-text);font-weight:700}
+.se-live{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--p-green);text-transform:uppercase;font-weight:700}
+.se-live::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--p-green);animation:livePulse 1.6s ease-in-out infinite}
+
+.se-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.se-kpi{background:var(--p-surface);border:1px solid var(--p-border);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.se-kpi .v{font-family:var(--display);font-size:22px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.se-kpi .v.blue{color:var(--p-blue)}
+.se-kpi .v.white{color:var(--p-text)}
+.se-kpi .v.red{color:var(--p-red)}
+.se-kpi .v.green{color:var(--p-green)}
+.se-kpi .l{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--p-muted)}
+
+.se-rows{display:flex;flex-direction:column;gap:0}
+.se-row-head{display:grid;grid-template-columns:1.6fr .6fr .5fr .5fr .6fr;gap:6px;padding:8px 12px;font-family:var(--mono);font-size:8.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--p-dim);border-bottom:1px solid var(--p-border)}
+.se-row{display:grid;grid-template-columns:1.6fr .6fr .5fr .5fr .6fr;gap:6px;padding:10px 12px;align-items:center;border-bottom:1px solid rgba(255,255,255,.04);transition:background .15s}
+.se-row:last-child{border-bottom:none}
+.se-row:hover{background:rgba(255,255,255,.02)}
+.se-row .name{display:flex;align-items:center;gap:8px;font-family:var(--display);font-size:12.5px;font-weight:700;color:var(--p-text)}
+.se-row .ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:11px;flex-shrink:0}
+.se-row .type{font-family:var(--mono);font-size:10px;color:var(--p-muted);letter-spacing:.04em}
+.se-row .cnt{font-family:var(--display);font-size:13px;font-weight:800;color:var(--p-text)}
+.se-row .size{font-family:var(--mono);font-size:10px;color:var(--p-text-2);letter-spacing:.02em}
+.se-badge{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:100px;font-weight:700;white-space:nowrap}
+.se-badge.ok{background:rgba(0,209,163,.14);color:var(--p-green)}
+.se-badge.risk{background:rgba(239,68,68,.14);color:var(--p-red)}
+.se-badge.warn{background:rgba(245,158,11,.14);color:var(--p-amber)}
+
+/* row animations */
+.slide.active .se-kpi{opacity:0;animation:fadeUp .4s ease forwards}
+.slide.active .se-kpi:nth-child(1){animation-delay:.5s}
+.slide.active .se-kpi:nth-child(2){animation-delay:.6s}
+.slide.active .se-kpi:nth-child(3){animation-delay:.7s}
+.slide.active .se-kpi:nth-child(4){animation-delay:.8s}
+.slide.active .se-row{opacity:0;animation:rowSlide .45s cubic-bezier(.25,1,.35,1) forwards}
+.slide.active .se-row:nth-child(2){animation-delay:1.0s}
+.slide.active .se-row:nth-child(3){animation-delay:1.1s}
+.slide.active .se-row:nth-child(4){animation-delay:1.2s}
+.slide.active .se-row:nth-child(5){animation-delay:1.3s}
+.slide.active .se-row:nth-child(6){animation-delay:1.4s}
+.slide.active .se-row:nth-child(7){animation-delay:1.5s}
+
+/* ═══════════════════════════════════════════════════════
+   WIDGET 2 — DATA EVOLUTION TIMELINE
+   ═══════════════════════════════════════════════════════ */
+.timeline-w{width:520px;background:var(--p-bg);border:1px solid var(--p-border);border-radius:20px;padding:26px 28px;display:flex;flex-direction:column;gap:16px;color:var(--p-text);box-shadow:0 40px 100px rgba(0,0,0,.22),0 0 0 1px rgba(0,209,163,.06)}
+.tl-head{display:flex;justify-content:space-between;align-items:flex-start}
+.tl-title{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--p-text);font-weight:700}
+.tl-sub{font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;color:var(--p-muted);margin-top:3px;text-transform:uppercase}
+.tl-picker{font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--p-text-2);text-transform:uppercase;padding:4px 10px;border:1px solid var(--p-border);border-radius:100px;background:var(--p-surface)}
+
+.tl-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tl-stat{background:var(--p-surface);border:1px solid var(--p-border);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.tl-stat .v{font-family:var(--display);font-size:20px;font-weight:800;color:var(--p-text);letter-spacing:-.03em;line-height:1}
+.tl-stat .v.red{color:var(--p-red)}
+.tl-stat .v.amber{color:var(--p-amber)}
+.tl-stat .l{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--p-muted)}
+
+.tl-chart{position:relative;height:140px;padding:0}
+.tl-chart svg{width:100%;height:100%;overflow:visible}
+
+.tl-log{display:flex;flex-direction:column;gap:4px}
+.tl-entry{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;transition:background .15s}
+.tl-entry:hover{background:rgba(255,255,255,.02)}
+.tl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tl-entry .date{font-family:var(--display);font-size:12px;font-weight:600;color:var(--p-text);flex:1}
+.tl-entry .date.green{color:var(--p-green)}
+.tl-entry .date.red{color:var(--p-red)}
+.tl-entry .sz{font-family:var(--mono);font-size:10px;color:var(--p-muted);letter-spacing:.03em}
+
+/* timeline animations */
+.slide.active .tl-stat{opacity:0;animation:fadeUp .4s ease forwards}
+.slide.active .tl-stat:nth-child(1){animation-delay:.4s}
+.slide.active .tl-stat:nth-child(2){animation-delay:.5s}
+.slide.active .tl-stat:nth-child(3){animation-delay:.6s}
+.slide.active .tl-chart{opacity:0;animation:fadeIn .6s ease forwards .8s}
+.slide.active .tl-entry{opacity:0;animation:rowSlide .4s ease forwards}
+.slide.active .tl-entry:nth-child(1){animation-delay:1.2s}
+.slide.active .tl-entry:nth-child(2){animation-delay:1.3s}
+.slide.active .tl-entry:nth-child(3){animation-delay:1.4s}
+.slide.active .tl-entry:nth-child(4){animation-delay:1.5s}
+
+/* ═══════════════════════════════════════════════════════
+   WIDGET 3 — SNAPSHOT COMPARISON DIFF
+   ═══════════════════════════════════════════════════════ */
+.snap-diff{width:480px;background:var(--p-bg);border:1px solid var(--p-border);border-radius:20px;padding:26px 28px;display:flex;flex-direction:column;gap:16px;color:var(--p-text);box-shadow:0 40px 100px rgba(0,0,0,.22),0 0 0 1px rgba(239,68,68,.08)}
+.sd-head{display:flex;justify-content:space-between;align-items:center}
+.sd-title{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--p-text);font-weight:700}
+.sd-alert{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--p-red);text-transform:uppercase;font-weight:700}
+.sd-alert::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--p-red);animation:redPulse 1.4s ease-in-out infinite}
+
+.sd-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sd-snap{border-radius:12px;padding:14px 16px;border:1px solid}
+.sd-snap.clean{border-color:rgba(96,165,250,.3);background:rgba(96,165,250,.04)}
+.sd-snap.bad{border-color:rgba(239,68,68,.3);background:rgba(239,68,68,.04)}
+.sd-snap-lb{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;margin-bottom:6px}
+.sd-snap.clean .sd-snap-lb{color:var(--p-blue)}
+.sd-snap.bad .sd-snap-lb{color:var(--p-red)}
+.sd-snap .date{font-family:var(--display);font-size:14px;font-weight:700;color:var(--p-text)}
+.sd-snap .metric{display:flex;justify-content:space-between;font-size:11px;margin-top:6px}
+.sd-snap .metric .k{color:var(--p-muted);font-family:var(--mono);font-size:9.5px;letter-spacing:.04em}
+.sd-snap .metric .val{font-family:var(--display);font-weight:700}
+.sd-snap.clean .metric .val{color:var(--p-blue)}
+.sd-snap.bad .metric .val{color:var(--p-red)}
+
+.sd-rows{display:flex;flex-direction:column;gap:0}
+.sd-dr{display:grid;grid-template-columns:80px 1fr 18px 1fr 58px;align-items:center;gap:4px;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04);font-size:11.5px}
+.sd-dr:last-child{border-bottom:none}
+.sd-dr .lb{color:var(--p-muted);font-family:var(--mono);font-size:10px;letter-spacing:.04em}
+.sd-dr .a{font-family:var(--display);font-weight:700;color:var(--p-blue)}
+.sd-dr .arr{color:var(--p-dim);font-size:10px;text-align:center}
+.sd-dr .b{font-family:var(--display);font-weight:700;color:var(--p-red)}
+.sd-dr .delta{font-family:var(--mono);font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border-radius:100px;font-weight:700;text-align:center}
+.sd-dr .delta.bad{background:rgba(239,68,68,.14);color:var(--p-red)}
+.sd-dr .delta.warn{background:rgba(245,158,11,.14);color:var(--p-amber)}
+
+.sd-ai{display:flex;flex-direction:column;gap:8px;padding-top:8px;border-top:1px dashed var(--p-border)}
+.sd-ai-item{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:var(--p-text-2);line-height:1.5}
+.sd-ai-item .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.sd-ai-item b{color:var(--p-text);font-weight:700}
+
+.sd-cta{width:100%;padding:12px;background:transparent;border:1px solid rgba(0,209,163,.3);border-radius:10px;color:var(--p-green);font-family:var(--display);font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
+.sd-cta::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,209,163,.12),transparent);animation:ctaShimmer 3.5s ease-in-out infinite 2s}
+@keyframes ctaShimmer{0%{left:-100%}60%,100%{left:100%}}
+.sd-cta:hover{background:rgba(0,209,163,.08);box-shadow:0 0 20px rgba(0,209,163,.25)}
+
+/* diff animations */
+.slide.active .sd-snap{opacity:0;animation:fadeUp .5s ease forwards}
+.slide.active .sd-snap:nth-child(1){animation-delay:.5s}
+.slide.active .sd-snap:nth-child(2){animation-delay:.7s}
+.slide.active .sd-dr{opacity:0;animation:rowSlide .4s ease forwards}
+.slide.active .sd-dr:nth-child(1){animation-delay:1.0s}
+.slide.active .sd-dr:nth-child(2){animation-delay:1.1s}
+.slide.active .sd-dr:nth-child(3){animation-delay:1.2s}
+.slide.active .sd-dr:nth-child(4){animation-delay:1.3s}
+.slide.active .sd-dr:nth-child(5){animation-delay:1.4s}
+.slide.active .sd-ai{opacity:0;animation:fadeUp .5s ease forwards 1.6s}
+.slide.active .sd-cta{opacity:0;animation:fadeUp .5s ease forwards 1.9s}
+
+/* ═══════════════════════════════════════════════════════
+   S4 — MUTATION LADDER (Alphabet → Book)
+   ═══════════════════════════════════════════════════════ */
+.ml-shell{width:560px;background:var(--p-bg);border:1px solid var(--p-border);border-radius:18px;padding:18px 20px 16px;display:flex;flex-direction:column;gap:14px;color:var(--p-text);box-shadow:0 40px 100px rgba(0,0,0,.22),0 0 0 1px rgba(96,165,250,.06)}
+.ml-head{display:flex;justify-content:space-between;align-items:flex-start}
+.ml-title{font-family:var(--display);font-size:14px;font-weight:800;color:var(--p-text);letter-spacing:-.02em}
+.ml-sub{font-family:var(--mono);font-size:8.5px;color:var(--p-muted);letter-spacing:.06em;text-transform:uppercase;margin-top:2px}
+.ml-live{font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:.08em;padding:4px 10px;border-radius:99px;background:rgba(0,209,163,.1);border:1px solid rgba(0,209,163,.25);color:var(--p-green)}
+
+.ml-rungs{display:flex;flex-direction:column;gap:6px}
+.ml-rung{display:grid;grid-template-columns:96px 1fr;gap:14px;padding:8px 4px 8px 0;align-items:center}
+.ml-rail{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding-top:2px}
+.ml-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:10px;font-weight:800;color:var(--p-text);background:rgba(255,255,255,.04);border:1px solid currentColor;line-height:1;flex-shrink:0;z-index:2;position:relative}
+.ml-lit{font-family:var(--display);font-size:10.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:currentColor;line-height:1}
+.ml-line{position:absolute;top:24px;bottom:-12px;left:50%;width:1px;background:linear-gradient(to bottom,currentColor,transparent);opacity:.35;transform:translateX(-50%);z-index:1}
+.ml-line.off{display:none}
+
+.ml-body{display:flex;flex-direction:column;gap:5px;min-width:0}
+.ml-data{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ml-dchip{font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:currentColor;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.04);border:1px solid currentColor;flex-shrink:0}
+.ml-dpath{font-family:var(--mono);font-size:10.5px;color:var(--p-text-2);letter-spacing:.02em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.ml-viz{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:9.5px;color:var(--p-muted);min-width:0;flex-wrap:wrap}
+.ml-viz svg{flex:1;min-width:120px;color:currentColor}
+.ml-tag{font-family:var(--mono);font-size:9.5px;color:var(--p-text-2);letter-spacing:.02em}
+.ml-tag b{color:currentColor}
+
+.ml-diff{font-family:var(--mono);font-size:10px;color:var(--p-text-2)}
+.ml-diff code{font-family:var(--mono);font-size:9.5px;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.06);color:var(--p-text)}
+
+.ml-kpis{display:flex;gap:5px;flex-wrap:wrap}
+.ml-kpi{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.04em;padding:3px 8px;border-radius:6px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);color:var(--p-text-2);white-space:nowrap}
+.ml-kpi b{color:currentColor;font-weight:800}
+.ml-kpi.anomaly{border-color:rgba(239,68,68,.45);background:rgba(239,68,68,.08);color:#fca5a5}
+
+.ml-pgs{display:flex;gap:5px;flex-wrap:wrap}
+.ml-pg{font-family:var(--mono);font-size:9.5px;font-weight:600;padding:4px 9px;border-radius:7px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);color:var(--p-text-2);display:inline-flex;align-items:center;gap:4px}
+.ml-pg.ok b{color:var(--p-green)}
+.ml-pg.warn{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.08);color:var(--p-amber)}
+.ml-pg.warn b{color:var(--p-amber)}
+
+.ml-org{display:flex;gap:10px;flex-wrap:wrap}
+.ml-org-stat{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:5px 11px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid currentColor;line-height:1.1;min-width:0}
+.ml-org-stat .big{font-family:var(--display);font-size:14px;font-weight:800;color:currentColor;letter-spacing:-.02em}
+.ml-org-stat span{font-family:var(--mono);font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:var(--p-muted);font-weight:600}
+
+/* per-rung accent colour (zoom-out spectrum: atom → org) */
+.ml-rung.r1{color:#a78bfa}
+.ml-rung.r2{color:#60a5fa}
+.ml-rung.r3{color:#22d3ee}
+.ml-rung.r4{color:#34d399}
+.ml-rung.r5{color:#f59e0b}
+.ml-rung.r6{color:#ef4444}
+
+/* per-rung stagger animation */
+.slide.active .ml-rung{opacity:0;animation:fadeUp .45s ease forwards}
+.slide.active .ml-rung.r1{animation-delay:.55s}
+.slide.active .ml-rung.r2{animation-delay:.7s}
+.slide.active .ml-rung.r3{animation-delay:.85s}
+.slide.active .ml-rung.r4{animation-delay:1.0s}
+.slide.active .ml-rung.r5{animation-delay:1.15s}
+.slide.active .ml-rung.r6{animation-delay:1.3s}
+
+/* ═══════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════ */
+@media (max-width:1100px){
+  .w-layout{grid-template-columns:1fr;gap:36px}
+  .w-stage{min-height:0}
+  .snap-estate,.timeline-w,.snap-diff,.ml-shell{width:100%;max-width:560px}
+  .intro-chips{grid-template-columns:1fr}
+}
+
+/* ============ STITCH NAV (cross-file tabs) ============ */
+.stitch-nav{position:fixed;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--surface-border);border-radius:100px;padding:5px 7px;box-shadow:0 4px 20px rgba(0,0,0,.06);z-index:60;font-family:var(--mono)}
+.st-tab{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-4);padding:6px 13px;border-radius:100px;font-weight:700;text-decoration:none;transition:color .2s,background .25s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer}
+.st-tab:hover{color:var(--ink)}
+.st-tab.active{color:#fff;background:var(--green);box-shadow:0 1px 4px rgba(0,184,148,.2);position:relative}
+.st-tab.active::before{content:'';position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:stitchDot 2.2s ease-in-out infinite}
+@keyframes stitchDot{0%,100%{opacity:1;transform:translateX(-50%) scale(1)}50%{opacity:.45;transform:translateX(-50%) scale(1.35)}}
+.st-sub{font-size:8.5px;letter-spacing:.1em;opacity:.78;font-weight:600}.st-tab.active .st-sub{opacity:.92}
+.st-sep{color:var(--ink-4);opacity:.35;font-size:10px;user-select:none}
+@media (max-width:780px){.stitch-nav{top:10px;padding:4px 6px}.st-tab{padding:5px 10px;font-size:9px;letter-spacing:.12em}}
+
+/* ============ USER VOICE ============ */
+.user-voice{display:inline-flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;row-gap:4px;padding:10px 16px 10px 18px;background:var(--surface,rgba(255,255,255,.94));border:1px dashed var(--green-border,rgba(0,184,148,.32));border-radius:14px;box-shadow:var(--shadow-sm,0 1px 3px rgba(0,0,0,.04));max-width:100%;width:fit-content}
+.uv-quote{font-family:var(--display);font-size:13px;color:var(--ink);font-style:italic;font-weight:500;line-height:1.45;letter-spacing:-.005em;position:relative;padding-left:20px;flex:1 1 auto;min-width:0}
+.uv-quote::before{content:'\201C';position:absolute;left:0;top:-2px;font-family:var(--display);font-size:26px;font-weight:800;color:var(--green);font-style:normal;line-height:1}
+.uv-attr{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);font-weight:600;white-space:nowrap;flex-shrink:0;padding-left:20px}
+</style>
+</head>
+<body>
+<div class="stitch-nav">
+  <a class="st-tab" href="vision-opening_1.html">Vision</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="a0.html">Discover</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="0.html">Protect</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab active" href="1.html">Monitor <span class="st-sub">3/3</span></a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="4.html">Recover</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="sources-reimagined.html">Examples</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="5.html">Additionals</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="conclusion.html">Closing</a>
+</div>
+<div class="bg-grid"></div>
+<div class="bg-blob blob1"></div>
+<div class="bg-blob blob2"></div>
+<div class="progress-bar" id="progressBar"></div>
+
+<div class="deck">
+
+<!-- ═══════════ S1: SNAPSHOT ESTATE ═══════════ -->
+<div class="slide active" id="s1">
+  <div class="slide-header">
+    <div class="brand"><span class="brand-dot"></span>DataProtect 2.0</div>
+    <div class="slide-tag">01 · Estate</div>
+  </div>
+
+  <div class="w-layout">
+    <div class="w-copy">
+      <div class="w-eb anim-1">01 · Snapshot Estate</div>
+      <div class="user-voice anim-1" style="margin:8px 0 4px">
+        <span class="uv-quote">Where's the snapshot? Pick a tool, any tool.</span>
+        <span class="uv-attr">— backup admin</span>
+      </div>
+      <h1 class="w-title anim-2">Every snapshot, across every <strong>object</strong> — one view.</h1>
+      <p class="w-sub anim-3">All workloads, all objects, all coverage gaps — mapped in <b>one place</b> without jumping between tools.</p>
+      <div class="w-replaces anim-3">
+        <span class="w-replaces-eb">Replaces</span>
+        <span class="w-replaces-txt">6 separate backup dashboards</span>
+      </div>
+      <ul class="w-points anim-4">
+        <li><b>147 snapshots.</b> Across 6 workloads, one surface.</li>
+        <li><b>Anomalies inline.</b> 3 flagged with trend data.</li>
+        <li><b>Recovery-ready.</b> Best clean point per source.</li>
+      </ul>
+    </div>
+
+    <div class="w-stage">
+      <div class="w-stage-inner anim-fi2">
+        <div class="snap-estate">
+          <div class="se-head">
+            <div class="se-title">Snapshot Estate</div>
+            <div class="se-live">Live</div>
+          </div>
+
+          <div class="se-kpis">
+            <div class="se-kpi"><div class="v blue" data-count="147" data-dur="1000" data-delay="500">0</div><div class="l">Snapshots</div></div>
+            <div class="se-kpi"><div class="v white" data-count="6" data-dur="600" data-delay="600">0</div><div class="l">Workloads</div></div>
+            <div class="se-kpi"><div class="v red" data-count="3" data-dur="600" data-delay="700">0</div><div class="l">Anomalies</div></div>
+            <div class="se-kpi"><div class="v green" data-count="5" data-dur="600" data-delay="800">0</div><div class="l">Clean pts</div></div>
+          </div>
+
+          <div class="se-rows">
+            <div class="se-row-head">
+              <span>Source</span><span>Snaps</span><span>Size</span><span>Anom.</span><span>Status</span>
+            </div>
+            <div class="se-row">
+              <div class="name"><div class="ic" style="background:rgba(14,165,233,.12);border:1px solid rgba(14,165,233,.18)">🗄️</div>prod-postgres-01</div>
+              <div class="cnt">18</div>
+              <div class="size">635 GB</div>
+              <div style="text-align:center"><span class="se-badge risk">⚠ 3</span></div>
+              <div style="text-align:right"><span class="se-badge risk">At Risk</span></div>
+            </div>
+            <div class="se-row">
+              <div class="name"><div class="ic" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.18)">🖥️</div>vsphere-prod</div>
+              <div class="cnt">11</div>
+              <div class="size">1.89 TB</div>
+              <div style="text-align:center"><span class="se-badge warn">⚠ 1</span></div>
+              <div style="text-align:right"><span class="se-badge ok">Healthy</span></div>
+            </div>
+            <div class="se-row">
+              <div class="name"><div class="ic" style="background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.18)">💾</div>finance-nas</div>
+              <div class="cnt">24</div>
+              <div class="size">2.1 TB</div>
+              <div style="text-align:center"><span class="se-badge" style="background:rgba(255,255,255,.06);color:var(--p-dim)">0</span></div>
+              <div style="text-align:right"><span class="se-badge ok">Healthy</span></div>
+            </div>
+            <div class="se-row">
+              <div class="name"><div class="ic" style="background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.18)">🔶</div>prod-oracle-erp</div>
+              <div class="cnt">31</div>
+              <div class="size">890 GB</div>
+              <div style="text-align:center"><span class="se-badge" style="background:rgba(255,255,255,.06);color:var(--p-dim)">0</span></div>
+              <div style="text-align:right"><span class="se-badge ok">Healthy</span></div>
+            </div>
+            <div class="se-row">
+              <div class="name"><div class="ic" style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.18)">☁️</div>aws-s3-sf</div>
+              <div class="cnt">28</div>
+              <div class="size">420 GB</div>
+              <div style="text-align:center"><span class="se-badge" style="background:rgba(255,255,255,.06);color:var(--p-dim)">0</span></div>
+              <div style="text-align:right"><span class="se-badge ok">Healthy</span></div>
+            </div>
+            <div class="se-row">
+              <div class="name"><div class="ic" style="background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.18)">📦</div>k8s-app-config</div>
+              <div class="cnt">35</div>
+              <div class="size">180 GB</div>
+              <div style="text-align:center"><span class="se-badge" style="background:rgba(255,255,255,.06);color:var(--p-dim)">0</span></div>
+              <div style="text-align:right"><span class="se-badge ok">Healthy</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="corner-dec">1 / 4</div>
+</div>
+
+
+<!-- ═══════════ S3: DATA EVOLUTION ═══════════ -->
+<div class="slide" id="s2">
+  <div class="slide-header">
+    <div class="brand"><span class="brand-dot"></span>DataProtect 2.0</div>
+    <div class="slide-tag">02 · Evolution</div>
+  </div>
+
+  <div class="w-layout">
+    <div class="w-copy">
+      <div class="w-eb anim-1">02 · Data Evolution</div>
+      <div class="user-voice anim-1" style="margin:8px 0 4px">
+        <span class="uv-quote">Something changed last week. I'll know when it breaks.</span>
+        <span class="uv-attr">— devops lead</span>
+      </div>
+      <h1 class="w-title anim-2">Watch your data <strong>evolve</strong> &mdash; at every level.</h1>
+      <p class="w-sub anim-3">Every snapshot is a data point on a living timeline. Zoom in to a single file, out to a snapshot, or all the way out to a whole source &mdash; <b>same lens, different scope</b>.</p>
+      <div class="w-replaces anim-3">
+        <span class="w-replaces-eb">Replaces</span>
+        <span class="w-replaces-txt">Disconnected backup logs</span>
+      </div>
+      <ul class="w-points anim-4">
+        <li><b>Source &rarr; Snapshot &rarr; File.</b> One mutation lens at every depth.</li>
+        <li><b>Shape tells the story.</b> A spike on Mar 12 is the story.</li>
+        <li><b>Recovery star.</b> The best clean point, marked.</li>
+      </ul>
+    </div>
+
+    <div class="w-stage">
+      <div class="w-stage-inner anim-fi2">
+        <div class="timeline-w">
+          <!-- Scope switcher: same lens at three different depths -->
+          <div style="display:flex;align-items:center;gap:6px;padding:6px;border-radius:100px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);width:fit-content;margin-bottom:10px">
+            <span style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--p-dim);padding:0 8px">Scope</span>
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--p-muted);padding:5px 11px;border-radius:99px;cursor:default">Source</span>
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:800;letter-spacing:.06em;color:#fff;padding:5px 11px;border-radius:99px;background:linear-gradient(135deg,#60a5fa,#3b82f6);box-shadow:0 1px 4px rgba(96,165,250,.3);cursor:default">Snapshot</span>
+            <span style="font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.06em;color:var(--p-muted);padding:5px 11px;border-radius:99px;cursor:default">File</span>
+          </div>
+          <div class="tl-head">
+            <div>
+              <div class="tl-title">Data Volume Timeline</div>
+              <div class="tl-sub">prod-postgres-01 · snapshot scope · 30 days</div>
+            </div>
+            <div class="tl-picker">30D · This month</div>
+          </div>
+
+          <div class="tl-stats">
+            <div class="tl-stat"><div class="v red">+39.8%</div><div class="l">Peak change</div></div>
+            <div class="tl-stat"><div class="v amber">+183 GB</div><div class="l">Growth (30d)</div></div>
+            <div class="tl-stat"><div class="v red">0→15.2%</div><div class="l">Encryption</div></div>
+          </div>
+
+          <div class="tl-chart">
+            <svg viewBox="0 0 470 120">
+              <defs>
+                <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#60a5fa" stop-opacity=".18"/><stop offset="100%" stop-color="#60a5fa" stop-opacity="0"/></linearGradient>
+                <linearGradient id="ag2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#ef4444" stop-opacity=".1"/><stop offset="100%" stop-color="#ef4444" stop-opacity="0"/></linearGradient>
+              </defs>
+              <!-- grid -->
+              <line x1="30" y1="15" x2="460" y2="15" stroke="rgba(255,255,255,.04)"/>
+              <line x1="30" y1="42" x2="460" y2="42" stroke="rgba(255,255,255,.04)"/>
+              <line x1="30" y1="69" x2="460" y2="69" stroke="rgba(255,255,255,.04)"/>
+              <line x1="30" y1="96" x2="460" y2="96" stroke="rgba(255,255,255,.04)"/>
+              <!-- Y labels -->
+              <text x="26" y="18" text-anchor="end" fill="#5a6370" font-size="8" font-family="DM Mono">640G</text>
+              <text x="26" y="45" text-anchor="end" fill="#5a6370" font-size="8" font-family="DM Mono">560G</text>
+              <text x="26" y="72" text-anchor="end" fill="#5a6370" font-size="8" font-family="DM Mono">490G</text>
+              <text x="26" y="99" text-anchor="end" fill="#5a6370" font-size="8" font-family="DM Mono">450G</text>
+              <!-- anomaly zone -->
+              <rect x="310" y="10" width="56" height="92" fill="rgba(239,68,68,.06)" rx="3"/>
+              <rect x="310" y="10" width="1.5" height="92" fill="rgba(239,68,68,.3)"/>
+              <!-- areas -->
+              <path d="M40,96 C70,96 100,95 140,94 C180,93 220,92 260,91 C290,90.5 305,90 310,89 L310,105 L40,105Z" fill="url(#ag)"/>
+              <path d="M311,28 C325,18 340,16 355,17 C380,18 410,20 440,22 L440,105 L311,105Z" fill="url(#ag2)"/>
+              <!-- lines -->
+              <path d="M40,96 C70,96 100,95 140,94 C180,93 220,92 260,91 C290,90.5 305,90 310,89" fill="none" stroke="#60a5fa" stroke-width="1.8"/>
+              <path d="M310,89 C315,50 325,28 340,22 C355,18 380,19 410,21 C430,22 450,23 460,24" fill="none" stroke="#ef4444" stroke-width="1.8"/>
+              <!-- markers -->
+              <line x1="230" y1="10" x2="230" y2="105" stroke="rgba(167,139,250,.4)" stroke-width="1" stroke-dasharray="3,3"/>
+              <circle cx="230" cy="92" r="4.5" fill="#7c3aed" stroke="#a78bfa" stroke-width="1.2"/>
+              <text x="230" y="115" text-anchor="middle" fill="#a78bfa" font-size="8" font-weight="700">Mar 01</text>
+              <line x1="282" y1="10" x2="282" y2="105" stroke="rgba(0,209,163,.35)" stroke-width="1" stroke-dasharray="3,3"/>
+              <circle cx="282" cy="90.5" r="5.5" fill="#00d1a3" stroke="#33e0bb" stroke-width="1.2"/>
+              <text x="282" y="90.5" text-anchor="middle" dominant-baseline="middle" fill="white" font-size="6" font-weight="800">★</text>
+              <text x="282" y="115" text-anchor="middle" fill="#00d1a3" font-size="8" font-weight="700">Mar 11</text>
+              <!-- spike -->
+              <circle cx="322" cy="24" r="5" fill="#f97316" stroke="#fdba74" stroke-width="1.2"/>
+              <text x="322" y="115" text-anchor="middle" fill="#f87171" font-size="8" font-weight="700">Mar 12</text>
+              <!-- ransomware -->
+              <circle cx="345" cy="17" r="5.5" fill="#ef4444" stroke="#f87171" stroke-width="1.2"/>
+              <text x="345" y="9" text-anchor="middle" fill="#fca5a5" font-size="7" font-weight="700">🦠</text>
+              <text x="350" y="115" text-anchor="middle" fill="#f87171" font-size="8">Mar 13</text>
+              <!-- normal dots -->
+              <circle cx="40" cy="96" r="2.5" fill="#0b0f14" stroke="#4b5563" stroke-width="1.2"/>
+              <circle cx="100" cy="95" r="2.5" fill="#0b0f14" stroke="#4b5563" stroke-width="1.2"/>
+              <circle cx="180" cy="93" r="2.5" fill="#0b0f14" stroke="#4b5563" stroke-width="1.2"/>
+              <circle cx="400" cy="20" r="2.5" fill="#0b0f14" stroke="#4b5563" stroke-width="1.2"/>
+              <circle cx="460" cy="24" r="2.5" fill="#0b0f14" stroke="#4b5563" stroke-width="1.2"/>
+              <!-- X labels -->
+              <text x="40" y="115" text-anchor="middle" fill="#5a6370" font-size="8">Feb 23</text>
+              <text x="140" y="115" text-anchor="middle" fill="#5a6370" font-size="8">Mar 03</text>
+              <text x="430" y="115" text-anchor="middle" fill="#5a6370" font-size="8">Mar 20</text>
+              <!-- zone label -->
+              <text x="338" y="100" text-anchor="middle" fill="rgba(239,68,68,.45)" font-size="7" font-weight="600">⚠ Anomaly</text>
+            </svg>
+          </div>
+
+          <div class="tl-log">
+            <div class="tl-entry"><div class="tl-dot" style="background:var(--p-green)"></div><div class="date green">Mar 11, 02:14 AM</div><div class="sz">452 GB</div><span class="se-badge ok" style="font-size:8px">★ Clean</span></div>
+            <div class="tl-entry"><div class="tl-dot" style="background:var(--p-red)"></div><div class="date red">Mar 13, 03:22 AM</div><div class="sz">641 GB</div><span class="se-badge risk" style="font-size:8px">🦠 Crit.</span></div>
+            <div class="tl-entry"><div class="tl-dot" style="background:#f97316"></div><div class="date">Mar 12, 09:47 AM</div><div class="sz">632 GB</div><span class="se-badge warn" style="font-size:8px">Spike</span></div>
+            <div class="tl-entry"><div class="tl-dot" style="background:#4b5563"></div><div class="date">Mar 09, 02:00 AM</div><div class="sz">451 GB</div><span class="se-badge" style="background:rgba(255,255,255,.06);color:var(--p-dim);font-size:8px">Normal</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="corner-dec">2 / 4</div>
+</div>
+
+
+<!-- ═══════════ S4: SNAPSHOT COMPARISON ═══════════ -->
+<div class="slide" id="s3">
+  <div class="slide-header">
+    <div class="brand"><span class="brand-dot"></span>DataProtect 2.0</div>
+    <div class="slide-tag">03 · Compare</div>
+  </div>
+
+  <div class="w-layout">
+    <div class="w-copy">
+      <div class="w-eb anim-1">03 · Snapshot Diff</div>
+      <div class="user-voice anim-1" style="margin:8px 0 4px">
+        <span class="uv-quote">Yesterday worked. Today didn't. Why is still a guess.</span>
+        <span class="uv-attr">— ops lead</span>
+      </div>
+      <h1 class="w-title anim-2">Compare two snapshots — understand <strong>exactly</strong> what changed.</h1>
+      <p class="w-sub anim-3">Pick two points in time. See the full diff. The system flags whether a snapshot is <b>safe to recover to</b>.</p>
+      <div class="w-replaces anim-3">
+        <span class="w-replaces-eb">Replaces</span>
+        <span class="w-replaces-txt">Manual log comparison</span>
+      </div>
+      <ul class="w-points anim-4">
+        <li><b>Side by side.</b> Size, files, encryption — at a glance.</li>
+        <li><b>AI analysis.</b> Pattern recognition, not guesswork.</li>
+        <li><b>One click recovery.</b> From the clean point, immediately.</li>
+      </ul>
+    </div>
+
+    <div class="w-stage">
+      <div class="w-stage-inner anim-fi2">
+        <div class="snap-diff">
+          <div class="sd-head">
+            <div class="sd-title">Snapshot Comparison</div>
+            <div class="sd-alert">Anomaly detected</div>
+          </div>
+
+          <div class="sd-pair">
+            <div class="sd-snap clean">
+              <div class="sd-snap-lb">Snapshot A — From</div>
+              <div class="date">Mar 11, 02:14 AM</div>
+              <div class="metric"><span class="k">Size</span><span class="val">452.3 GB</span></div>
+              <div class="metric"><span class="k">Files</span><span class="val">12,730</span></div>
+              <div class="metric"><span class="k">Encrypted</span><span class="val">0.0%</span></div>
+            </div>
+            <div class="sd-snap bad">
+              <div class="sd-snap-lb">Snapshot B — To</div>
+              <div class="date">Mar 13, 03:22 AM</div>
+              <div class="metric"><span class="k">Size</span><span class="val">641.1 GB</span></div>
+              <div class="metric"><span class="k">Files</span><span class="val">27,200</span></div>
+              <div class="metric"><span class="k">Encrypted</span><span class="val">14.2%</span></div>
+            </div>
+          </div>
+
+          <div class="sd-rows">
+            <div class="sd-dr">
+              <span class="lb">Data Size</span>
+              <span class="a">452.3 GB</span>
+              <span class="arr">→</span>
+              <span class="b">641.1 GB</span>
+              <span class="delta bad">+41.7%</span>
+            </div>
+            <div class="sd-dr">
+              <span class="lb">File Count</span>
+              <span class="a">12,730</span>
+              <span class="arr">→</span>
+              <span class="b">27,200</span>
+              <span class="delta bad">+14,470</span>
+            </div>
+            <div class="sd-dr">
+              <span class="lb">Encrypted</span>
+              <span class="a" style="color:var(--p-green)">0.0%</span>
+              <span class="arr">→</span>
+              <span class="b">14.2%</span>
+              <span class="delta bad">+14.2pp</span>
+            </div>
+            <div class="sd-dr">
+              <span class="lb">Change Rate</span>
+              <span class="a" style="color:var(--p-green)">+0.2%</span>
+              <span class="arr">→</span>
+              <span class="b">+39.8%</span>
+              <span class="delta bad">7× norm</span>
+            </div>
+            <div class="sd-dr">
+              <span class="lb">Deleted</span>
+              <span class="a" style="color:var(--p-muted)">—</span>
+              <span class="arr"></span>
+              <span class="b" style="color:var(--p-amber)">−350</span>
+              <span class="delta warn">Removed</span>
+            </div>
+          </div>
+
+          <div class="sd-ai">
+            <div class="sd-ai-item"><div class="dot" style="background:var(--p-red)"></div><span><b>Ransomware pattern confirmed.</b> 14,820 new files with elevated encryption entropy.</span></div>
+            <div class="sd-ai-item"><div class="dot" style="background:var(--p-amber)"></div><span><b>350 files deleted</b> in attack window — double-extortion pattern.</span></div>
+            <div class="sd-ai-item"><div class="dot" style="background:var(--p-green)"></div><span><b>Snapshot A is clean.</b> 0% encrypted, 98% recovery confidence.</span></div>
+          </div>
+
+          <button class="sd-cta">↺ Recover from Snapshot A — March 11</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="corner-dec">3 / 4</div>
+</div>
+
+
+<!-- ═══════════ S4: DATA EVOLUTION (record / snapshot / org ladder) ═══════════ -->
+<div class="slide" id="s4">
+  <div class="slide-header">
+    <div class="brand"><span class="brand-dot"></span>DataProtect 2.0</div>
+    <div class="slide-tag">04 &middot; Data Evolution</div>
+  </div>
+
+  <div class="w-layout">
+    <div class="w-copy">
+      <div class="w-eb anim-1">04 &middot; Data Evolution, end-to-end</div>
+      <div class="user-voice anim-1" style="margin:8px 0 4px">
+        <span class="uv-quote">PII in our org grew tenfold this quarter. Nobody saw it coming.</span>
+        <span class="uv-attr">&mdash; backup admin</span>
+      </div>
+      <h1 class="w-title anim-2">See how your data <strong>evolves</strong> &mdash; across every level, over time.</h1>
+      <p class="w-sub anim-3">Track how your data evolves &mdash; from a single record to your entire organization. Understand <b>growth, anomalies, and changes across time</b>, not just at a single point.</p>
+      <div class="w-replaces anim-3">
+        <span class="w-replaces-eb">Replaces</span>
+        <span class="w-replaces-txt">Single-scope dashboards</span>
+      </div>
+      <ul class="w-points anim-4">
+        <li><b>From record to organization.</b> Understand changes at every level &mdash; field, file, snapshot, source, and beyond.</li>
+        <li><b>One change, visible everywhere.</b> A spike at the file level reflects instantly at the system and org level.</li>
+        <li><b>Detect change as it happens.</b> Identify unusual growth, sensitive data expansion, or anomalies before they become risks.</li>
+      </ul>
+    </div>
+
+    <div class="w-stage">
+      <div class="w-stage-inner anim-fi2">
+        <div style="background:var(--p-bg);border:1px solid var(--p-border);border-radius:18px;padding:18px 18px 14px;display:flex;flex-direction:column;gap:14px;width:540px;color:var(--p-text);box-shadow:0 30px 80px rgba(0,0,0,.22)">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-family:var(--display);font-size:14px;font-weight:800;color:var(--p-text);letter-spacing:-.02em">Data Evolution Ladder</div>
+              <div style="font-family:var(--mono);font-size:8.5px;color:var(--p-muted);letter-spacing:.06em;text-transform:uppercase;margin-top:2px">Same insight &middot; six levels of depth</div>
+            </div>
+            <div style="font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:.08em;padding:4px 10px;border-radius:99px;background:rgba(0,209,163,.1);border:1px solid rgba(0,209,163,.25);color:var(--p-green)">Live</div>
+          </div>
+
+          <!-- RECORD-LEVEL -->
+          <div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05)">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#a78bfa;padding:2px 8px;border-radius:99px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.28)">Record</span><span style="font-family:var(--mono);font-size:11px;color:var(--p-text)">/notes/research/notes.txt</span></div>
+              <span style="font-family:var(--mono);font-size:9px;color:var(--p-muted)">10 years</span>
+            </div>
+            <svg viewBox="0 0 460 44" style="width:100%;height:44px">
+              <line x1="20" y1="36" x2="450" y2="36" stroke="rgba(255,255,255,.08)"/>
+              <path d="M20,36 L70,35.5 L120,34.5 L170,32 L220,28 L270,22 L320,15 L370,10 L420,6 L450,4" fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-linecap="round" style="filter:drop-shadow(0 0 4px rgba(167,139,250,.5))"/>
+              <circle cx="20" cy="36" r="2.5" fill="#a78bfa"/>
+              <circle cx="170" cy="32" r="2.5" fill="#a78bfa"/>
+              <circle cx="320" cy="15" r="2.5" fill="#a78bfa"/>
+              <circle cx="450" cy="4" r="3" fill="#a78bfa" stroke="#fff" stroke-width="1"/>
+              <text x="20" y="14" fill="rgba(255,255,255,.55)" font-size="8" font-family="DM Mono">5 KB</text>
+              <text x="170" y="22" fill="rgba(255,255,255,.55)" font-size="8" font-family="DM Mono">15 KB</text>
+              <text x="310" y="8" fill="rgba(255,255,255,.55)" font-size="8" font-family="DM Mono">50 KB</text>
+              <text x="425" y="14" fill="#a78bfa" font-size="8" font-family="DM Mono" font-weight="700">5 MB</text>
+            </svg>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--p-muted);letter-spacing:.04em">2016 &middot; 5 KB &nbsp;&rarr;&nbsp; 2019 &middot; 15 KB &nbsp;&rarr;&nbsp; 2022 &middot; 50 KB &nbsp;&rarr;&nbsp; 2026 &middot; <b style="color:var(--p-text-2)">5 MB</b> &middot; <span style="color:#a78bfa">+1000&times; lifetime</span></div>
+          </div>
+
+          <!-- SNAPSHOT-LEVEL -->
+          <div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05)">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#60a5fa;padding:2px 8px;border-radius:99px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.28)">Snapshot</span><span style="font-family:var(--mono);font-size:11px;color:var(--p-text)">prod-postgres-01 &middot; A &rarr; B</span></div>
+              <span style="font-family:var(--mono);font-size:9px;color:var(--p-red);font-weight:800">Anomaly</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+              <div style="padding:6px 8px;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)"><div style="font-family:var(--mono);font-size:7.5px;color:var(--p-dim);letter-spacing:.1em;text-transform:uppercase">Size</div><div style="font-family:var(--display);font-size:11px;font-weight:800;color:var(--p-text)">452G &rarr; 641G</div><div style="font-family:var(--mono);font-size:8.5px;color:#fca5a5;font-weight:700">+41.7%</div></div>
+              <div style="padding:6px 8px;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)"><div style="font-family:var(--mono);font-size:7.5px;color:var(--p-dim);letter-spacing:.1em;text-transform:uppercase">Files</div><div style="font-family:var(--display);font-size:11px;font-weight:800;color:var(--p-text)">12.7K &rarr; 27.2K</div><div style="font-family:var(--mono);font-size:8.5px;color:#fca5a5;font-weight:700">+14.5K</div></div>
+              <div style="padding:6px 8px;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)"><div style="font-family:var(--mono);font-size:7.5px;color:var(--p-dim);letter-spacing:.1em;text-transform:uppercase">Encrypted</div><div style="font-family:var(--display);font-size:11px;font-weight:800;color:var(--p-text)">0% &rarr; 14.2%</div><div style="font-family:var(--mono);font-size:8.5px;color:#fca5a5;font-weight:700">+14.2pp</div></div>
+              <div style="padding:6px 8px;border-radius:7px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)"><div style="font-family:var(--mono);font-size:7.5px;color:var(--p-dim);letter-spacing:.1em;text-transform:uppercase">Change rate</div><div style="font-family:var(--display);font-size:11px;font-weight:800;color:var(--p-text)">+0.2% &rarr; +39.8%</div><div style="font-family:var(--mono);font-size:8.5px;color:#fca5a5;font-weight:700">7&times; norm</div></div>
+            </div>
+          </div>
+
+          <!-- ORGANIZATION-LEVEL -->
+          <div style="display:flex;flex-direction:column;gap:6px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05)">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:8px"><span style="font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#34d399;padding:2px 8px;border-radius:99px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.28)">Organization</span><span style="font-family:var(--mono);font-size:11px;color:var(--p-text)">aws-prod-01 &middot; week over week</span></div>
+              <span style="font-family:var(--mono);font-size:9px;color:#34d399;font-weight:800">+22% data</span>
+            </div>
+            <svg viewBox="0 0 460 56" style="width:100%;height:56px">
+              <g>
+                <rect x="20"  y="42" width="40" height="10" rx="2" fill="rgba(52,211,153,.5)"/>
+                <rect x="80"  y="38" width="40" height="14" rx="2" fill="rgba(52,211,153,.55)"/>
+                <rect x="140" y="33" width="40" height="19" rx="2" fill="rgba(52,211,153,.6)"/>
+                <rect x="200" y="29" width="40" height="23" rx="2" fill="rgba(52,211,153,.7)"/>
+                <rect x="260" y="22" width="40" height="30" rx="2" fill="rgba(52,211,153,.8)"/>
+                <rect x="320" y="16" width="40" height="36" rx="2" fill="#34d399"/>
+                <rect x="380" y="8"  width="40" height="44" rx="2" fill="#34d399" style="filter:drop-shadow(0 0 6px rgba(52,211,153,.7))"/>
+              </g>
+              <text x="40"  y="52" fill="rgba(255,255,255,.4)" font-size="7" font-family="DM Mono" text-anchor="middle">W1</text>
+              <text x="100" y="52" fill="rgba(255,255,255,.4)" font-size="7" font-family="DM Mono" text-anchor="middle">W2</text>
+              <text x="160" y="52" fill="rgba(255,255,255,.4)" font-size="7" font-family="DM Mono" text-anchor="middle">W3</text>
+              <text x="220" y="52" fill="rgba(255,255,255,.4)" font-size="7" font-family="DM Mono" text-anchor="middle">W4</text>
+              <text x="280" y="52" fill="rgba(255,255,255,.4)" font-size="7" font-family="DM Mono" text-anchor="middle">W5</text>
+              <text x="340" y="52" fill="rgba(255,255,255,.4)" font-size="7" font-family="DM Mono" text-anchor="middle">W6</text>
+              <text x="400" y="52" fill="#34d399" font-size="7" font-family="DM Mono" text-anchor="middle" font-weight="800">W7</text>
+            </svg>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-size:9px;color:var(--p-muted)">
+              <span><b style="color:var(--p-text-2)">+47</b> new EC2 instances spun up</span>
+              <span style="color:var(--p-dim)">&middot;</span>
+              <span><b style="color:var(--p-text-2)">12</b> untagged &mdash; not in any protection group</span>
+              <span style="color:var(--p-dim)">&middot;</span>
+              <span style="color:#fca5a5"><b>3</b> contain PII</span>
+            </div>
+          </div>
+
+          <!-- AI summary -->
+          <div style="display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:10px;background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.22)">
+            <div style="font-size:11px">&#10022;</div>
+            <div style="flex:1"><div style="font-family:var(--mono);font-size:8.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#a5b4fc;margin-bottom:2px">AI summary</div><div style="font-size:11px;color:var(--p-text-2);line-height:1.5">Organization data growing steadily, but <b style="color:#fca5a5">snapshot-B anomaly</b> + <b style="color:#fca5a5">3 untagged PII workloads</b> signal compliance drift starting at the record level &mdash; act now, not after audit.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="corner-dec">4 / 4</div>
+</div>
+
+</div>
+
+<div class="nav">
+  <button onclick="changeSlide(-1)">&larr;</button>
+  <div class="dots" id="dotsContainer"></div>
+  <button onclick="changeSlide(1)">&rarr;</button>
+  <div class="slide-counter" id="counter">1 / 3</div>
+</div>
+
+<script>
+const slides=document.querySelectorAll('.slide'),total=slides.length;let current=0;
+const dotsEl=document.getElementById('dotsContainer'),counterEl=document.getElementById('counter'),progEl=document.getElementById('progressBar');
+for(let i=0;i<total;i++){const d=document.createElement('div');d.className='dot'+(i===0?' active':'');d.addEventListener('click',()=>goTo(i));dotsEl.appendChild(d);}
+progEl.style.width=(1/total*100)+'%';
+
+function animateCount(el){
+  const target=parseFloat(el.getAttribute('data-count'));
+  const decimals=parseInt(el.getAttribute('data-dec')||'0',10);
+  const delay=parseInt(el.getAttribute('data-delay')||'0',10);
+  const duration=parseInt(el.getAttribute('data-dur')||'1200',10);
+  const suffix=el.getAttribute('data-suffix')||'';
+  const start=performance.now()+delay;
+  el.textContent='0'+suffix;
+  function frame(t){
+    if(t<start){requestAnimationFrame(frame);return;}
+    const p=Math.min(1,(t-start)/duration);
+    const eased=1-Math.pow(1-p,3);
+    const cur=target*eased;
+    el.textContent=Math.round(cur)+suffix;
+    if(p<1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+function triggerCountUps(slide){
+  slide.querySelectorAll('[data-count]').forEach(el=>animateCount(el));
+}
+
+function goTo(n){
+  slides[current].classList.remove('active');dotsEl.children[current].classList.remove('active');
+  current=Math.max(0,Math.min(total-1,n));
+  const s=slides[current];
+  s.querySelectorAll('[class*=anim-]').forEach(el=>{const c=el.className;el.className='';void el.offsetWidth;el.className=c;});
+  s.classList.add('active');dotsEl.children[current].classList.add('active');
+  counterEl.textContent=(current+1)+' / '+total;progEl.style.width=((current+1)/total*100)+'%';
+  triggerCountUps(s);
+}
+function changeSlide(dir){goTo(current+dir);}
+triggerCountUps(slides[0]);
+
+document.addEventListener('keydown',e=>{
+  if(['ArrowRight',' '].includes(e.key)){e.preventDefault();changeSlide(1);}
+  else if(e.key==='ArrowLeft'){e.preventDefault();changeSlide(-1);}
+  else if(e.key==='ArrowDown'){e.preventDefault();goTo(current+1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();goTo(current-1);}
+  const num=parseInt(e.key);
+  if(num>=1&&num<=total){e.preventDefault();goTo(num-1);}
+});
+let tx=0;document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;});document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50)changeSlide(dx<0?1:-1);});
+
+/* ============ STITCH BRIDGE ============ */
+window.STITCH = {prev:'2.html', next:'4.html'};
+(function(){
+  var S = window.STITCH || {};
+  var orig = window.changeSlide;
+  function curIdx(){ var a=document.querySelectorAll('.slide'); for(var i=0;i<a.length;i++) if(a[i].classList.contains('active')) return i; return 0; }
+  function tot(){ return document.querySelectorAll('.slide').length; }
+  if (typeof orig === 'function'){
+    window.changeSlide = function(dir){
+      var c=curIdx(), t=tot();
+      if(dir>0 && c>=t-1 && S.next){ window.location.href=S.next; return; }
+      if(dir<0 && c<=0 && S.prev){ window.location.href=S.prev+'?last=1'; return; }
+      return orig(dir);
+    };
+  }
+  if (typeof window.goTo === 'function' && /(?:^|[?&])last=1/.test(location.search)){
+    setTimeout(function(){ window.goTo(tot()-1); }, 0);
+  }
+})();
+</script>
+</body>
+</html>

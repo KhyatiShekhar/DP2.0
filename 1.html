@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cohesity DP 2.0 — Monitoring & Data Viz</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f2ec;--surface:#ffffff;--surface-border:#e0dbd2;
+  --ink:#1a1a2e;--ink-3:#6b6b7b;--ink-4:#9a9aab;
+  --green:#00b894;--blue:#4f8fff;--red:#e84430;--amber:#f59e0b;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.04);
+  --p-bg:#0b0f14;--p-surface:#131820;
+  --p-border:rgba(255,255,255,.07);
+  --p-text:#e7ecf2;--p-text-2:#b8c0cd;--p-muted:#8891a0;--p-dim:#4a5260;
+  --p-green:#00d1a3;--p-cyan:#22d3ee;--p-blue:#60a5fa;--p-red:#ef4444;--p-amber:#f59e0b;
+  --mono:'DM Mono',monospace;--display:'Plus Jakarta Sans',sans-serif;--body:'Outfit',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);width:100vw;height:100vh;-webkit-font-smoothing:antialiased;display:flex;align-items:center;justify-content:center}
+
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,184,148,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,184,148,.04) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.bg-blob{position:fixed;border-radius:50%;filter:blur(150px);opacity:.07;pointer-events:none;z-index:0}
+.blob1{width:560px;height:560px;background:var(--green);top:-160px;right:-80px;animation:bd 14s ease-in-out infinite alternate}
+.blob2{width:480px;height:480px;background:var(--blue);bottom:-140px;left:-80px;animation:bd 18s ease-in-out infinite alternate-reverse}
+@keyframes bd{from{transform:translate(0,0) scale(1)}to{transform:translate(40px,28px) scale(1.1)}}
+
+.progress-bar{position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--green),var(--blue));z-index:200;box-shadow:0 0 10px var(--green)}
+
+/* SLIDE GRID */
+.slide{position:relative;z-index:1;width:100%;max-width:1300px;padding:0 52px;display:grid;grid-template-columns:1fr 1.1fr;gap:56px;align-items:center}
+
+.slide-header{position:fixed;top:22px;left:56px;right:56px;display:flex;align-items:center;justify-content:space-between;z-index:10}
+.brand{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);display:flex;align-items:center;gap:8px}
+.brand-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+.slide-tag{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4)}
+.corner-dec{position:fixed;bottom:28px;right:56px;font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);opacity:.28}
+
+/* ─────────────────────────────────────────────
+   COPY COLUMN
+───────────────────────────────────────────── */
+.copy-col{display:flex;flex-direction:column;gap:24px}
+.eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--green);font-weight:700;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:'';width:28px;height:1px;background:var(--green)}
+.headline{font-family:var(--display);font-size:clamp(36px,3.8vw,56px);font-weight:800;line-height:1.04;letter-spacing:-.03em;color:var(--ink)}
+.headline strong{color:var(--green)}
+.subline{font-size:15.5px;color:var(--ink-3);line-height:1.65;max-width:40ch}
+.subline b{color:var(--ink);font-weight:600}
+
+.replaces-pill{display:inline-flex;align-items:center;gap:10px;padding:6px 14px;background:var(--surface);border:1px solid var(--surface-border);border-radius:100px;width:fit-content;box-shadow:var(--shadow-sm)}
+.rep-label{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-4);font-weight:600}
+.rep-val{font-family:var(--display);font-size:12px;font-weight:600;color:var(--ink-3);text-decoration:line-through;text-decoration-color:var(--red);text-decoration-thickness:1.5px}
+
+.points{list-style:none;display:flex;flex-direction:column;gap:14px}
+.points li{font-size:14px;color:var(--ink-3);line-height:1.6;padding-left:18px;position:relative}
+.points li::before{content:'';position:absolute;left:0;top:8px;width:7px;height:7px;background:var(--green);border-radius:2px}
+.points li b{color:var(--ink);font-weight:700}
+
+/* copy animations */
+.copy-col .eyebrow{opacity:0;animation:fadeUp .5s ease forwards .05s}
+.copy-col .headline{opacity:0;animation:fadeUp .5s ease forwards .15s}
+.copy-col .subline{opacity:0;animation:fadeUp .5s ease forwards .25s}
+.copy-col .replaces-pill{opacity:0;animation:fadeUp .5s ease forwards .32s}
+.copy-col .points{opacity:0;animation:fadeUp .5s ease forwards .4s}
+
+/* ─────────────────────────────────────────────
+   COLLAGE COLUMN
+───────────────────────────────────────────── */
+.collage-col{position:relative;display:flex;align-items:center;justify-content:center;min-height:475px}
+
+/* radial glow behind the stack */
+.collage-col::before{
+  content:'';position:absolute;inset:-80px;
+  background:radial-gradient(ellipse at 52% 48%,rgba(0,184,148,.11) 0%,rgba(79,143,255,.06) 40%,transparent 70%);
+  pointer-events:none;z-index:0
+}
+
+/* ── SHARED CARD BASE ── */
+.card{
+  position:absolute;
+  border-radius:16px;
+  background:var(--p-bg);
+  border:1px solid var(--p-border);
+  box-shadow:0 28px 70px rgba(0,0,0,.35);
+  overflow:hidden
+}
+
+/* ────────────────────────────────────
+   CARD 1: SNAPSHOT HEATMAP (back layer)
+   rotated -2.5°, shifted up-left, z=1
+──────────────────────────────────── */
+.heatmap-card{
+  width:580px;
+  top:22px;
+  left:-30px;
+  z-index:1;
+  transform:rotate(-2.5deg);
+  transform-origin:center center;
+  border-color:rgba(255,255,255,.09);
+  opacity:0;
+  animation:cardSlide .7s cubic-bezier(.2,.8,.4,1) forwards .15s
+}
+@keyframes cardSlide{from{opacity:0;transform:rotate(-2.5deg) translateY(20px)}to{opacity:1;transform:rotate(-2.5deg) translateY(0)}}
+
+/* heatmap header */
+.hm-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.06)}
+.hm-title-area{display:flex;align-items:center;gap:10px}
+.hm-icon{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#ef4444);display:grid;place-items:center;font-size:14px;flex-shrink:0}
+.hm-name{font-family:var(--display);font-size:13px;font-weight:800;color:var(--p-text);letter-spacing:-.01em}
+.hm-meta{font-family:var(--mono);font-size:8.5px;color:var(--p-muted);margin-top:2px;letter-spacing:.04em}
+.hm-counters{display:flex;gap:8px}
+.hm-count{background:var(--p-surface);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:5px 10px;text-align:center}
+.hm-count .cv{font-family:var(--display);font-size:15px;font-weight:800;line-height:1}
+.hm-count .cl{font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--p-muted);margin-top:1px}
+
+/* legend strip */
+.hm-legend{display:flex;align-items:center;gap:12px;padding:7px 16px;border-bottom:1px solid rgba(255,255,255,.04);font-family:var(--mono);font-size:8px;color:var(--p-muted);letter-spacing:.06em}
+.hm-legend-item{display:flex;align-items:center;gap:4px}
+.hm-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* date axis */
+.hm-dates{display:flex;gap:2px;padding:5px 16px 3px;font-family:var(--mono);font-size:7.5px;color:var(--p-dim);letter-spacing:.04em}
+.hm-dates span{flex:1;text-align:center}
+
+/* heatmap grid */
+.hm-grid{padding:4px 16px 12px;display:flex;flex-direction:column;gap:3px}
+.hm-row{display:flex;gap:2px;align-items:center}
+.hm-row-label{font-family:var(--mono);font-size:8px;color:var(--p-muted);width:68px;flex-shrink:0;letter-spacing:.03em}
+.hm-row-label .row-name{font-family:var(--display);font-size:9px;font-weight:700;color:var(--p-text-2)}
+.hm-row-label .row-sub{font-size:7.5px;color:var(--p-red);margin-top:1px}
+.hm-tiles{display:flex;gap:2px;flex:1}
+.tile{height:14px;flex:1;border-radius:2px;min-width:0}
+.tile.g{background:#00c896}
+.tile.r{background:#ef4444}
+.tile.a{background:#f59e0b}
+.tile.m{background:rgba(255,255,255,.1)}
+.tile.n{background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.08)}
+/* overview row is taller */
+.hm-overview .tile{height:10px}
+.hm-row-count{font-family:var(--mono);font-size:8px;color:var(--p-muted);width:30px;text-align:right;flex-shrink:0}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+/* ────────────────────────────────────
+   CARD 3: RESILIENCE PIPELINE (front)
+   no rotation, overlaps bottom of SLA, z=3
+──────────────────────────────────── */
+.pipeline-card{
+  width:520px;
+  top:285px;
+  left:60px;
+  z-index:3;
+  background:#0d1421;
+  border:1px solid rgba(96,165,250,.22);
+  box-shadow:0 20px 60px rgba(0,0,0,.55),0 0 56px rgba(96,165,250,.14),0 0 0 1px rgba(96,165,250,.1);
+  padding:16px 24px 18px;
+  opacity:0;
+  animation:fadeUp .65s cubic-bezier(.2,.8,.4,1) forwards 1.0s
+}
+
+.pipe-title{font-family:var(--display);font-size:10px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--p-text);margin-bottom:16px}
+
+/* nodes track */
+.pipe-nodes-wrap{position:relative}
+/* base grey line */
+.pipe-base-line{position:absolute;top:13px;left:18px;right:18px;height:2px;background:rgba(255,255,255,.07);border-radius:1px}
+/* animated glow line */
+.pipe-glow-line{
+  position:absolute;top:13px;left:18px;width:0;height:2px;
+  background:linear-gradient(90deg,var(--p-blue),rgba(96,165,250,.25));
+  box-shadow:0 0 10px rgba(96,165,250,.8),0 0 20px rgba(96,165,250,.3);
+  border-radius:1px;
+  animation:glowDraw 1.4s cubic-bezier(.4,0,.2,1) forwards 1.3s
+}
+@keyframes glowDraw{from{width:0}to{width:calc(75% + 4px)}}
+
+.pipe-nodes{display:flex;justify-content:space-between;align-items:flex-start;padding:0 6px}
+.pn{display:flex;flex-direction:column;align-items:center;gap:0}
+.pn-ring{
+  width:26px;height:26px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  position:relative;z-index:2;
+  transform:scale(0);opacity:0
+}
+.pn-ring-outer{position:absolute;inset:0;border-radius:50%;border:1.5px solid var(--p-blue);box-shadow:0 0 10px rgba(96,165,250,.35)}
+.pn-ring-inner{width:11px;height:11px;border-radius:50%;border:1.5px solid var(--p-blue);background:rgba(96,165,250,.18)}
+.pn.error .pn-ring-outer{border-color:var(--p-red);box-shadow:0 0 12px rgba(239,68,68,.45)}
+.pn.error .pn-ring-inner{border-color:var(--p-red);background:rgba(239,68,68,.18)}
+.pn-lbl{font-family:var(--display);font-size:9.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--p-text);margin-top:8px;white-space:nowrap;opacity:0}
+.pn.error .pn-lbl{color:var(--p-red)}
+.pn-time{font-family:var(--mono);font-size:8.5px;color:var(--p-muted);margin-top:2px;opacity:0}
+
+/* decorative stitch between heatmap bottom-right and pipeline top-left */
+.card-stitch{position:absolute;width:80px;height:60px;top:262px;left:430px;z-index:2;opacity:0;animation:fadeIn .5s ease forwards 1.6s;pointer-events:none}
+
+/* node stagger */
+@keyframes nodePop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.pn:nth-child(1) .pn-ring{animation:nodePop .38s cubic-bezier(.34,1.56,.64,1) forwards 1.4s}
+.pn:nth-child(2) .pn-ring{animation:nodePop .38s cubic-bezier(.34,1.56,.64,1) forwards 1.62s}
+.pn:nth-child(3) .pn-ring{animation:nodePop .38s cubic-bezier(.34,1.56,.64,1) forwards 1.84s}
+.pn:nth-child(4) .pn-ring{animation:nodePop .38s cubic-bezier(.34,1.56,.64,1) forwards 2.06s}
+.pn:nth-child(1) .pn-lbl,.pn:nth-child(1) .pn-time{animation:fadeIn .3s ease forwards 1.6s}
+.pn:nth-child(2) .pn-lbl,.pn:nth-child(2) .pn-time{animation:fadeIn .3s ease forwards 1.82s}
+.pn:nth-child(3) .pn-lbl,.pn:nth-child(3) .pn-time{animation:fadeIn .3s ease forwards 2.04s}
+.pn:nth-child(4) .pn-lbl,.pn:nth-child(4) .pn-time{animation:fadeIn .3s ease forwards 2.26s}
+
+/* ============ STITCH NAV (cross-file tabs) ============ */
+.stitch-nav{position:fixed;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--surface-border);border-radius:100px;padding:5px 7px;box-shadow:0 4px 20px rgba(0,0,0,.06);z-index:60;font-family:var(--mono)}
+.st-tab{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-4);padding:6px 13px;border-radius:100px;font-weight:700;text-decoration:none;transition:color .2s,background .25s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer}
+.st-tab:hover{color:var(--ink)}
+.st-tab.active{color:#fff;background:var(--green);box-shadow:0 1px 4px rgba(0,184,148,.2);position:relative}
+.st-tab.active::before{content:'';position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:stitchDot 2.2s ease-in-out infinite}
+@keyframes stitchDot{0%,100%{opacity:1;transform:translateX(-50%) scale(1)}50%{opacity:.45;transform:translateX(-50%) scale(1.35)}}
+.st-sub{font-size:8.5px;letter-spacing:.1em;opacity:.78;font-weight:600}.st-tab.active .st-sub{opacity:.92}
+.st-sep{color:var(--ink-4);opacity:.35;font-size:10px;user-select:none}
+@media (max-width:900px){.stitch-nav{top:10px;padding:4px 6px}.st-tab{padding:5px 10px;font-size:9px;letter-spacing:.12em}}
+/* nudge slide-header below the stitch-nav so the brand mark doesn't collide */
+.slide-header{top:54px}
+
+/* ============ BOTTOM NAV (matches other decks) ============ */
+.nav{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;z-index:100;background:rgba(245,242,236,.92);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid var(--surface-border);border-radius:100px;padding:9px 22px;box-shadow:0 4px 20px rgba(0,0,0,.06);font-family:var(--body)}
+.nav a{background:none;border:none;color:var(--ink-4);cursor:pointer;font-size:16px;padding:4px 8px;transition:color .2s;text-decoration:none;line-height:1}
+.nav a:hover{color:var(--green)}
+.nav .dots{display:flex;gap:6px;align-items:center}
+.nav .dot{width:6px;height:6px;border-radius:50%;background:var(--surface-border);transition:all .3s}
+.nav .dot.active{background:var(--green);width:18px;border-radius:4px}
+.slide-counter{font-family:var(--mono);font-size:10px;color:var(--ink-4);min-width:44px;text-align:center;letter-spacing:.06em}
+</style>
+</head>
+<body>
+<div class="stitch-nav">
+  <a class="st-tab" href="vision-opening_1.html">Vision</a>
+  <span class="st-sep">&middot;</span>
+  <a class="st-tab" href="a0.html">Discover</a>
+  <span class="st-sep">&middot;</span>
+  <a class="st-tab" href="0.html">Protect</a>
+  <span class="st-sep">&middot;</span>
+  <a class="st-tab active" href="1.html">Monitor <span class="st-sub">1/3</span></a>
+  <span class="st-sep">&middot;</span>
+  <a class="st-tab" href="4.html">Recover</a>
+  <span class="st-sep">&middot;</span>
+  <a class="st-tab" href="sources-reimagined.html">Examples</a>
+  <span class="st-sep">&middot;</span>
+  <a class="st-tab" href="5.html">Additionals</a>
+  <span class="st-sep">&middot;</span>
+  <a class="st-tab" href="conclusion.html">Closing</a>
+</div>
+<div class="bg-grid"></div>
+<div class="bg-blob blob1"></div>
+<div class="bg-blob blob2"></div>
+<div class="progress-bar"></div>
+
+<div class="slide-header">
+  <div class="brand"><span class="brand-dot"></span>Cohesity DP 2.0</div>
+  <div class="slide-tag">01 &middot; Monitoring &amp; Data Viz</div>
+</div>
+
+<div class="slide">
+
+  <!-- ── LEFT: COPY ── -->
+  <div class="copy-col">
+    <div class="eyebrow">Coherence-First Monitoring</div>
+
+    <h1 class="headline">Visualisation<br>over <strong>tables</strong>.<br>Always.</h1>
+
+    <p class="subline">
+      We replaced static tables and raw logs with <b>purpose-built visualisations</b> — so every operator reads health instantly and traces issues to their cause without hunting through rows.
+    </p>
+
+    <div class="replaces-pill">
+      <span class="rep-label">Replaces</span>
+      <span class="rep-val">Status tables &amp; raw log walls</span>
+    </div>
+
+    <ul class="points">
+      <li><b>Charts over columns.</b> Trends, heatmaps, and pipeline views encode time, volume, and risk in a single glance — patterns that rows and numbers can never reveal.</li>
+      <li><b>State over status.</b> Every screen shows the <b>shape</b> of what's happening — drift, clusters, stalled phases — so decisions happen in seconds, not after a deep-dive.</li>
+    </ul>
+  </div>
+
+  <!-- ── RIGHT: COLLAGE ── -->
+  <div class="collage-col">
+
+    <!-- CARD 1: HEATMAP (back, rotated) -->
+    <div class="card heatmap-card">
+      <div class="hm-header">
+        <div class="hm-title-area">
+          <div class="hm-icon">🗄</div>
+          <div>
+            <div class="hm-name">oracle-prod-01</div>
+            <div class="hm-meta">Oracle &nbsp;·&nbsp; 10.0.2.10 &nbsp;·&nbsp; Oracle 19c &nbsp;·&nbsp; ⊙ Seen 4 min ago</div>
+          </div>
+        </div>
+        <div class="hm-counters">
+          <div class="hm-count"><div class="cv" style="color:var(--p-text)">3</div><div class="cl">Objects</div></div>
+          <div class="hm-count"><div class="cv" style="color:var(--p-green)">3</div><div class="cl">Protected</div></div>
+          <div class="hm-count"><div class="cv" style="color:var(--p-red)">0</div><div class="cl">Unprotected</div></div>
+        </div>
+      </div>
+
+      <div class="hm-legend">
+        <div class="hm-legend-item"><div class="hm-legend-dot" style="background:#00c896"></div>Clean snapshot</div>
+        <div class="hm-legend-item"><div class="hm-legend-dot" style="background:#ef4444"></div>Anomaly detected</div>
+        <div class="hm-legend-item"><div class="hm-legend-dot" style="background:#f59e0b"></div>Warning / spike</div>
+        <div class="hm-legend-item"><div class="hm-legend-dot" style="background:rgba(255,255,255,.15)"></div>Missed</div>
+        <div class="hm-legend-item" style="margin-left:auto;font-size:7.5px;color:var(--p-dim)">Hover for details · Click row to view intelligence</div>
+      </div>
+
+      <!-- date ticks -->
+      <div class="hm-dates" style="padding-left:80px">
+        <span>Mar 26</span><span></span><span></span><span>Mar 30</span><span></span><span></span><span>Apr 3</span><span></span><span></span><span>Apr 7</span><span></span><span></span><span>Apr 11</span><span></span><span></span><span>Apr 15</span><span></span><span></span><span>Apr 19</span><span></span><span></span><span>Apr 22</span>
+      </div>
+
+      <div class="hm-grid">
+        <!-- DAILY OVERVIEW row -->
+        <div class="hm-row hm-overview">
+          <div class="hm-row-label" style="font-family:var(--mono);font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--p-dim)">Daily Overview</div>
+          <div class="hm-tiles">
+            <div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile r"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile r"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile a"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile r"></div><div class="tile g"></div><div class="tile g"></div><div class="tile r"></div><div class="tile g"></div><div class="tile g"></div>
+          </div>
+          <div class="hm-row-count"></div>
+        </div>
+
+        <!-- ORCLCDB -->
+        <div class="hm-row">
+          <div class="hm-row-label">
+            <div class="row-name">ORCLCDB</div>
+            <div class="row-sub">2 anomalies · 2 missed</div>
+          </div>
+          <div class="hm-tiles">
+            <div class="tile a"></div><div class="tile g"></div><div class="tile r"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile m"></div><div class="tile g"></div><div class="tile a"></div><div class="tile g"></div><div class="tile g"></div><div class="tile r"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div>
+          </div>
+          <div class="hm-row-count" style="color:var(--p-muted)">24/28d</div>
+        </div>
+
+        <!-- ORCL_FINANCE -->
+        <div class="hm-row">
+          <div class="hm-row-label">
+            <div class="row-name">ORCL_FINANCE</div>
+            <div class="row-sub" style="color:var(--p-muted)">2 missed</div>
+          </div>
+          <div class="hm-tiles">
+            <div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile n"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile n"></div><div class="tile g"></div>
+          </div>
+          <div class="hm-row-count" style="color:var(--p-muted)">26/28d</div>
+        </div>
+
+        <!-- ORCL_HR -->
+        <div class="hm-row">
+          <div class="hm-row-label">
+            <div class="row-name">ORCL_HR</div>
+            <div class="row-sub">3 anomalies · 3 missed</div>
+          </div>
+          <div class="hm-tiles">
+            <div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile r"></div><div class="tile r"></div><div class="tile a"></div><div class="tile a"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile r"></div><div class="tile a"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile r"></div><div class="tile g"></div><div class="tile g"></div><div class="tile g"></div><div class="tile a"></div>
+          </div>
+          <div class="hm-row-count" style="color:var(--p-muted)">22/28d</div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- decorative stitch — visually links heatmap bottom-right to pipeline top-left -->
+    <svg class="card-stitch" viewBox="0 0 80 60" aria-hidden="true">
+      <path d="M8 6 Q 40 30 72 54" stroke="rgba(96,165,250,.32)" stroke-width="1.2" stroke-dasharray="3 4" fill="none"/>
+      <circle cx="8" cy="6" r="2.4" fill="rgba(96,165,250,.55)"/>
+      <circle cx="72" cy="54" r="2.4" fill="rgba(96,165,250,.55)"/>
+    </svg>
+
+    <!-- CARD 3: RESILIENCE PIPELINE (front, no rotation) -->
+    <div class="card pipeline-card">
+      <div class="pipe-title">Recovery Pipeline</div>
+      <div class="pipe-nodes-wrap">
+        <div class="pipe-base-line"></div>
+        <div class="pipe-glow-line"></div>
+        <div class="pipe-nodes">
+          <div class="pn">
+            <div class="pn-ring"><div class="pn-ring-outer"></div><div class="pn-ring-inner"></div></div>
+            <div class="pn-lbl">Init</div>
+            <div class="pn-time">10:00 AM</div>
+          </div>
+          <div class="pn">
+            <div class="pn-ring"><div class="pn-ring-outer"></div><div class="pn-ring-inner"></div></div>
+            <div class="pn-lbl">Allocation</div>
+            <div class="pn-time">10:02 AM</div>
+          </div>
+          <div class="pn">
+            <div class="pn-ring"><div class="pn-ring-outer"></div><div class="pn-ring-inner"></div></div>
+            <div class="pn-lbl">Transfer</div>
+            <div class="pn-time">10:15 AM</div>
+          </div>
+          <div class="pn error">
+            <div class="pn-ring"><div class="pn-ring-outer"></div><div class="pn-ring-inner"></div></div>
+            <div class="pn-lbl">Validation</div>
+            <div class="pn-time">10:35 AM</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /collage-col -->
+
+</div><!-- /slide -->
+
+<div class="corner-dec">Cohesity DP 2.0 · Monitoring &amp; Data Viz</div>
+
+<div class="nav">
+  <a href="0.html" title="Previous deck &middot; Protect">&larr;</a>
+  <div class="dots"><span class="dot active"></span></div>
+  <a href="2.html" title="Next monitor deck &middot; AI Deep Dive">&rarr;</a>
+  <div class="slide-counter">Monitor 1 / 3</div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Discover — DataProtect 2.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f2ec;--surface:#fff;--surface-2:#eeeae3;--surface-border:#e0dbd2;
+  --ink:#1a1a2e;--ink-2:#3d3d4d;--ink-3:#6b6b7b;--ink-4:#9a9aab;
+  --green:#00b894;--green-bg:rgba(0,184,148,.06);--green-border:rgba(0,184,148,.22);
+  --red:#e84430;--blue:#4f8fff;--amber:#f59e0b;--purple:#a78bfa;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.04);--shadow-md:0 4px 20px rgba(0,0,0,.06);
+  --p-bg:#0b0f14;--p-surface:#151a22;--p-surface-2:#1b2029;
+  --p-border:rgba(255,255,255,.08);--p-border-2:rgba(255,255,255,.14);
+  --p-text:#e7ecf2;--p-text-2:#b8c0cd;--p-muted:#8891a0;--p-dim:#5a6370;
+  --p-green:#00d1a3;--p-amber:#f59e0b;--p-red:#ef4444;--p-blue:#60a5fa;--p-purple:#a78bfa;
+  --mono:'DM Mono',monospace;--display:'Plus Jakarta Sans',sans-serif;--body:'Outfit',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidden;height:100vh;width:100vw;-webkit-font-smoothing:antialiased}
+.deck{width:100%;height:100vh;position:relative}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px 56px 80px;opacity:0;pointer-events:none;transition:opacity .5s ease;overflow-y:auto;overflow-x:hidden;background:var(--bg)}
+.slide.active{opacity:1;pointer-events:all}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,184,148,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,184,148,.04) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.bg-blob{position:fixed;border-radius:50%;filter:blur(140px);opacity:.08;pointer-events:none;z-index:0}
+.blob1{width:600px;height:600px;background:var(--green);top:-200px;right:-100px;animation:bd 14s ease-in-out infinite alternate}
+.blob2{width:500px;height:500px;background:var(--blue);bottom:-150px;left:-100px;animation:bd 18s ease-in-out infinite alternate-reverse}
+@keyframes bd{from{transform:translate(0,0) scale(1)}to{transform:translate(40px,30px) scale(1.1)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+@keyframes rowSlide{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:translateX(0)}}
+@keyframes livePulse{0%,100%{box-shadow:0 0 0 0 rgba(0,209,163,.6)}50%{box-shadow:0 0 0 6px rgba(0,209,163,0)}}
+@keyframes agentPulse{0%,100%{box-shadow:0 0 0 0 rgba(0,209,163,.5)}50%{box-shadow:0 0 0 8px rgba(0,209,163,0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes sweep{0%{left:-40%}100%{left:110%}}
+@keyframes ping{0%{transform:scale(1);opacity:.7}100%{transform:scale(2.2);opacity:0}}
+.slide.active .a1{animation:fadeUp .5s ease forwards .1s;opacity:0}
+.slide.active .a2{animation:fadeUp .5s ease forwards .2s;opacity:0}
+.slide.active .a3{animation:fadeUp .5s ease forwards .3s;opacity:0}
+.slide.active .a4{animation:fadeUp .5s ease forwards .4s;opacity:0}
+.slide.active .fi2{animation:fadeIn .6s ease forwards .35s;opacity:0}
+
+.nav{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;z-index:100;background:rgba(245,242,236,.92);backdrop-filter:blur(16px);border:1px solid var(--surface-border);border-radius:100px;padding:9px 22px;box-shadow:var(--shadow-md)}
+.nav button{background:none;border:none;color:var(--ink-4);cursor:pointer;font-size:16px;padding:4px 8px;transition:color .2s;font-family:var(--body)}
+.nav button:hover{color:var(--green)}
+.nav .dots{display:flex;gap:6px;align-items:center}
+.nav .dot{width:6px;height:6px;border-radius:50%;background:var(--surface-border);transition:all .3s;cursor:pointer}
+.nav .dot.active{background:var(--green);width:18px;border-radius:4px}
+.slide-counter{font-family:var(--mono);font-size:10px;color:var(--ink-4);min-width:44px;text-align:center}
+.progress-bar{position:fixed;top:0;left:0;height:2px;background:var(--green);transition:width .5s ease;z-index:200;box-shadow:0 0 10px var(--green)}
+.slide-header{position:absolute;top:22px;left:56px;right:56px;display:flex;align-items:center;justify-content:space-between;z-index:10}
+.brand{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);display:flex;align-items:center;gap:8px}
+.brand-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+.slide-tag{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4)}
+.corner-dec{position:absolute;bottom:88px;right:56px;font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);opacity:.35}
+
+.wl{display:grid;grid-template-columns:1fr 1.2fr;gap:56px;width:100%;max-width:1320px;align-items:center;min-height:560px}
+.wc{display:flex;flex-direction:column;gap:18px;max-width:480px}
+.web{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--green);font-weight:700;display:flex;align-items:center;gap:10px}
+.web::before{content:'';width:28px;height:1px;background:var(--green)}
+.wt{font-family:var(--display);font-size:clamp(30px,3.4vw,46px);font-weight:800;line-height:1.05;letter-spacing:-.028em;color:var(--ink)}
+.wt strong{color:var(--green)}
+.ws{font-size:16px;color:var(--ink-3);line-height:1.55;max-width:40ch}
+.ws b{color:var(--ink-2);font-weight:600}
+.wr{display:inline-flex;align-items:center;gap:10px;padding:7px 14px;background:var(--surface);border:1px solid var(--surface-border);border-radius:100px;width:fit-content;box-shadow:var(--shadow-sm)}
+.wr-e{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-4);font-weight:600}
+.wr-t{font-family:var(--display);font-size:12px;font-weight:600;color:var(--ink-3);text-decoration:line-through;text-decoration-color:var(--red);text-decoration-thickness:1.5px}
+.wp{list-style:none;display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.wp li{font-size:13.5px;color:var(--ink-3);line-height:1.5;padding-left:20px;position:relative}
+.wp li::before{content:'';position:absolute;left:0;top:8px;width:8px;height:8px;background:var(--green);border-radius:2px}
+.wp li b{color:var(--ink);font-weight:700}
+.wsg{display:flex;justify-content:center;align-items:center;position:relative;min-height:500px}
+.wsg::before{content:'';position:absolute;inset:-40px;background:radial-gradient(circle at center,rgba(0,184,148,.09),transparent 65%);pointer-events:none;z-index:0}
+.wsi{position:relative;z-index:1;width:100%}
+
+.uv{display:inline-flex;flex-wrap:wrap;align-items:baseline;column-gap:12px;row-gap:4px;padding:10px 16px 10px 18px;background:var(--surface);border:1px dashed var(--green-border);border-radius:14px;box-shadow:var(--shadow-sm);max-width:100%;width:fit-content}
+.uv q{font-family:var(--display);font-size:13px;color:var(--ink);font-style:italic;font-weight:500;line-height:1.45;position:relative;padding-left:20px;flex:1 1 auto;min-width:0;quotes:none}
+.uv q::before{content:'\201C';position:absolute;left:0;top:-2px;font-family:var(--display);font-size:26px;font-weight:800;color:var(--green);font-style:normal;line-height:1}
+.uv cite{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);font-weight:600;white-space:nowrap;flex-shrink:0;padding-left:20px;font-style:normal}
+
+.dw{background:var(--p-bg);border:1px solid var(--p-border);border-radius:20px;padding:22px 24px;display:flex;flex-direction:column;gap:12px;color:var(--p-text);box-shadow:0 40px 100px rgba(0,0,0,.22),0 0 0 1px rgba(0,209,163,.06)}
+.dh{display:flex;justify-content:space-between;align-items:center}
+.dt{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--p-text);font-weight:700}
+.dl{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:9px;letter-spacing:.12em;color:var(--p-green);text-transform:uppercase;font-weight:700}
+.dl::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--p-green);animation:livePulse 1.6s ease-in-out infinite}
+.ds{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--p-muted);font-weight:600;margin-bottom:-4px}
+.badge{font-family:var(--mono);font-size:8px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:100px;font-weight:700;flex-shrink:0}
+.b-ok{background:rgba(0,209,163,.14);color:var(--p-green)}
+.b-w{background:rgba(245,158,11,.14);color:var(--p-amber)}
+.b-c{background:rgba(239,68,68,.14);color:var(--p-red)}
+.b-i{background:rgba(96,165,250,.14);color:var(--p-blue)}
+.b-p{background:rgba(167,139,250,.14);color:var(--p-purple)}
+
+.kpi-row{display:grid;gap:8px}
+.kpi{background:var(--p-surface);border:1px solid var(--p-border);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.kpi .v{font-family:var(--display);font-size:20px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.kpi .l{font-family:var(--mono);font-size:8.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--p-muted)}
+.slide.active .kpi{opacity:0;animation:fadeUp .4s ease forwards}
+.slide.active .kpi:nth-child(1){animation-delay:.5s}.slide.active .kpi:nth-child(2){animation-delay:.6s}.slide.active .kpi:nth-child(3){animation-delay:.7s}
+
+/* S1 step chain */
+.sn{display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:6px;font-family:var(--display);font-size:10.5px;font-weight:600;color:var(--p-text-2)}
+.sn.x{color:var(--p-dim);text-decoration:line-through;text-decoration-color:var(--p-red);opacity:.45}
+.sn.h{color:var(--p-green);background:rgba(0,209,163,.06);border:1px solid rgba(0,209,163,.15)}
+.sn.d{color:var(--p-green)}
+.sd{width:8px;height:8px;border-radius:50%;flex-shrink:0;border:1.5px solid var(--p-dim)}
+.sn.x .sd{background:var(--p-red);border-color:var(--p-red)}.sn.h .sd{background:var(--p-green);border-color:var(--p-green);animation:agentPulse 2s ease-in-out infinite}.sn.d .sd{background:var(--p-green);border-color:var(--p-green)}
+.sc{width:1px;height:4px;background:rgba(255,255,255,.06);margin-left:12px}
+.grp{background:var(--p-surface);border:1px solid var(--p-border);border-radius:8px;padding:6px 8px;margin:4px 0}
+.grp-l{font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px;display:flex;align-items:center;gap:5px}
+
+/* S3 SSO */
+.sso{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--p-surface);border:1px solid var(--p-border);border-radius:10px}
+.sso-i{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-size:14px;flex-shrink:0}
+.sso-n{font-family:var(--display);font-size:12px;font-weight:700;color:var(--p-text)}
+.sso-d{font-size:10px;color:var(--p-muted);margin-top:2px}
+.sso-a{display:flex;align-items:center;justify-content:center;height:14px;color:var(--p-dim);font-size:10px}
+
+/* S4 scan */
+.scan-ring{width:42px;height:42px;border-radius:50%;border:2.5px solid rgba(167,139,250,.15);border-top-color:var(--p-purple);animation:spin .9s linear infinite;flex-shrink:0}
+.log-l{font-family:var(--mono);font-size:8.5px;color:var(--p-dim);letter-spacing:.03em;padding:1px 0;opacity:0;transition:opacity .3s,color .3s}
+.log-l.vis{opacity:1;color:var(--p-muted)}.log-l.done{color:var(--p-green)}
+.shimmer::after{content:'';position:absolute;top:0;height:100%;width:40%;background:linear-gradient(90deg,transparent,rgba(167,139,250,.6),transparent);animation:sweep 1.1s ease-in-out infinite}
+.wl-row{display:grid;grid-template-columns:22px 1fr 60px auto auto;gap:6px;padding:7px 10px;align-items:center;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;opacity:0;animation:rowSlide .4s ease forwards}
+.conf-bar{height:3px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden;margin-top:3px;width:50px}
+.conf-fill{height:100%;border-radius:99px;width:0;transition:width .8s ease}
+.conf-fill.go{width:var(--w)}
+.opt-card{background:var(--p-surface);border:1px solid var(--p-border);border-radius:12px;padding:16px;cursor:pointer;transition:all .2s;display:flex;flex-direction:column;gap:8px;text-align:center;align-items:center}
+.opt-card:hover{border-color:var(--p-border-2);transform:translateY(-2px)}
+.opt-card.selected{border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.04)}
+.wl-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1px solid var(--p-border);background:var(--p-surface);cursor:pointer;transition:all .2s;font-family:var(--display);font-size:11px;font-weight:600;color:var(--p-text-2)}
+.wl-chip:hover{border-color:var(--p-border-2)}.wl-chip.on{border-color:rgba(167,139,250,.5);background:rgba(167,139,250,.06);color:var(--p-purple)}
+.btn-pri{padding:9px 22px;background:linear-gradient(135deg,#a78bfa,#7c3aed);border:none;border-radius:100px;font-family:var(--display);font-size:12px;font-weight:800;color:white;cursor:pointer;display:inline-flex;align-items:center;gap:7px;box-shadow:0 4px 24px rgba(167,139,250,.35);transition:transform .15s}
+.btn-pri:hover{transform:translateY(-1px)}
+.btn-sec{padding:8px 16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:100px;font-family:var(--display);font-size:11px;font-weight:700;color:var(--p-muted);cursor:pointer;transition:all .2s}
+.btn-grn{padding:8px 18px;background:var(--p-green);border:none;border-radius:100px;font-family:var(--display);font-size:11px;font-weight:800;color:#022c22;cursor:pointer}
+
+/* stitch */
+.stitch-nav{position:fixed;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.94);backdrop-filter:blur(12px);border:1px solid var(--surface-border);border-radius:100px;padding:5px 7px;box-shadow:0 4px 20px rgba(0,0,0,.06);z-index:60;font-family:var(--mono)}
+.st-tab{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-4);padding:6px 13px;border-radius:100px;font-weight:700;text-decoration:none;transition:color .2s,background .25s;cursor:pointer;white-space:nowrap}
+.st-tab:hover{color:var(--ink)}.st-tab.active{color:#fff;background:var(--green)}
+.st-sep{color:var(--ink-4);opacity:.35;font-size:10px}
+@media(max-width:1100px){.wl{grid-template-columns:1fr;gap:36px}.wsg{min-height:0}.dw{width:100%;max-width:540px}}
+</style>
+</head>
+<body>
+<div class="stitch-nav">
+  <a class="st-tab" href="vision-opening_1.html">Vision</a>
+  <span class="st-sep">&middot;</span>
+  <a class="st-tab active">Discover</a>
+  <span class="st-sep">&middot;</span>
+  <a class="st-tab" href="0.html">Protect</a>
+  <span class="st-sep">&middot;</span>
+  <a class="st-tab" href="1.html">Monitor</a>
+  <span class="st-sep">&middot;</span>
+  <a class="st-tab" href="4.html">Recover</a>
+  <span class="st-sep">&middot;</span>
+  <a class="st-tab" href="sources-reimagined.html">Examples</a>
+  <span class="st-sep">&middot;</span>
+  <a class="st-tab" href="5.html">Additionals</a>
+  <span class="st-sep">&middot;</span>
+  <a class="st-tab" href="conclusion.html">Closing</a>
+</div>
+<div class="bg-grid"></div><div class="bg-blob blob1"></div><div class="bg-blob blob2"></div>
+<div class="progress-bar" id="progressBar"></div>
+
+<div class="deck">
+
+<!-- ═══ S1: AGENT STEP REDUCTION (no PO step) ═══ -->
+<div class="slide active" id="s1">
+  <div class="slide-header"><div class="brand"><span class="brand-dot"></span>DataProtect 2.0</div><div class="slide-tag">01 &middot; Agent Automation</div></div>
+  <div class="wl">
+    <div class="wc">
+      <div class="web a1">01 &middot; Onboarding Agents</div>
+      <div class="uv a1" style="margin:6px 0"><q>After the cluster is up I still have 15 manual steps before my first backup runs. Too many handoffs.</q><cite>&mdash; backup admin</cite></div>
+      <h1 class="wt a2">15 steps to <strong>4 human decisions.</strong></h1>
+      <p class="ws a3">Post cluster-setup, there are <b>15 manual steps</b> before first backup. Three AI agents automate 11 of them so the admin only makes <b>4 real decisions</b>.</p>
+      <div class="wr a3"><span class="wr-e">Replaces</span><span class="wr-t">Manual multi-week onboarding checklist</span></div>
+      <ul class="wp a4">
+        <li><b>Provisioning Agent</b> &mdash; license, cluster config, DNS/NTP, Helios registration.</li>
+        <li><b>IAM Agent</b> &mdash; RBAC, AD/LDAP, SSO, group-to-role mapping.</li>
+        <li><b>Orchestration Agent</b> &mdash; agent deploy, policy creation, protection groups.</li>
+        <li><b>Human decides:</b> environment, sources, policy approval, first backup trigger.</li>
+      </ul>
+    </div>
+    <div class="wsg"><div class="wsi fi2">
+      <div class="dw" style="width:500px">
+        <div class="dh"><div class="dt">Post Cluster Setup &rarr; First Backup</div><span class="dl">Automating</span></div>
+        <div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">
+          <div class="kpi"><div class="v" style="color:var(--p-red)" data-count="15" data-dur="800" data-delay="500">0</div><div class="l">Steps Today</div></div>
+          <div class="kpi"><div class="v" style="color:var(--p-green)" data-count="4" data-dur="800" data-delay="700">0</div><div class="l">With Agents</div></div>
+          <div class="kpi"><div class="v" style="color:var(--p-amber)" data-count="73" data-suffix="%" data-dur="1000" data-delay="900">0%</div><div class="l">Reduction</div></div>
+        </div>
+        <div class="grp"><div class="grp-l" style="color:var(--p-purple)"><span style="width:6px;height:6px;border-radius:50%;background:var(--p-purple)"></span>Provisioning Agent</div>
+          <div class="sn x"><span class="sd"></span>Provisioning request</div><div class="sc"></div>
+          <div class="sn x"><span class="sd"></span>License activation</div><div class="sc"></div>
+          <div class="sn x"><span class="sd"></span>Cluster config (DNS, NTP, VLAN)</div><div class="sc"></div>
+          <div class="sn x"><span class="sd"></span>Helios registration &amp; token exchange</div>
+        </div>
+        <div class="grp"><div class="grp-l" style="color:var(--p-blue)"><span style="width:6px;height:6px;border-radius:50%;background:var(--p-blue)"></span>IAM Agent</div>
+          <div class="sn x"><span class="sd"></span>IAM / RBAC setup</div><div class="sc"></div>
+          <div class="sn x"><span class="sd"></span>AD/LDAP configuration</div><div class="sc"></div>
+          <div class="sn x"><span class="sd"></span>SSO app integration</div>
+        </div>
+        <div class="sn h"><span class="sd"></span>Environment selection<span class="badge b-ok" style="font-size:7px;margin-left:auto">Human</span></div><div class="sc"></div>
+        <div class="sn h"><span class="sd"></span>Source registration<span class="badge b-ok" style="font-size:7px;margin-left:auto">Human</span></div>
+        <div class="grp"><div class="grp-l" style="color:var(--p-green)"><span style="width:6px;height:6px;border-radius:50%;background:var(--p-green)"></span>Orchestration Agent</div>
+          <div class="sn x"><span class="sd"></span>Agent deployment</div><div class="sc"></div>
+          <div class="sn x"><span class="sd"></span>Policy creation</div><div class="sc"></div>
+          <div class="sn x"><span class="sd"></span>Protection group assignment</div><div class="sc"></div>
+          <div class="sn x"><span class="sd"></span>SLA validation</div>
+        </div>
+        <div class="sn h"><span class="sd"></span>Policy approval<span class="badge b-ok" style="font-size:7px;margin-left:auto">Human</span></div><div class="sc"></div>
+        <div class="sn d"><span class="sd"></span><span style="font-weight:800">First backup &#10003;</span></div>
+      </div>
+    </div></div>
+  </div>
+  <div class="corner-dec">1 / 4</div>
+</div>
+
+<!-- ═══ S2: UNIFIED HELIOS FLOWCHART (reference-style) ═══ -->
+<div class="slide" id="s2">
+  <div class="slide-header"><div class="brand"><span class="brand-dot"></span>DataProtect 2.0</div><div class="slide-tag">02 &middot; Unified Platform</div></div>
+  <div class="wl">
+    <div class="wc">
+      <div class="web a1">02 &middot; Helios Unified Wizard</div>
+      <div class="uv a1" style="margin:6px 0"><q>I jump between Helios and cluster UI six times. CCS is a whole different portal.</q><cite>&mdash; backup admin</cite></div>
+      <h1 class="wt a2">One wizard, <strong>every environment.</strong></h1>
+      <p class="ws a3">On-Prem, NGCE, and CCS converge into <b>one Helios onboarding</b>. Each env branches for its unique steps, then merges into shared modules for discovery and protection.</p>
+      <div class="wr a3"><span class="wr-e">Replaces</span><span class="wr-t">Separate cluster UI + Helios + CCS portal</span></div>
+      <ul class="wp a4">
+        <li><b>System</b> &mdash; Cluster claim via Helios token. CCS skips this.</li>
+        <li><b>Infrastructure</b> &mdash; Region + access. Same module, different inputs.</li>
+        <li><b>Discovery</b> &mdash; Source registration &mdash; manual or Cyera auto.</li>
+        <li><b>Protection</b> &mdash; Global policy + first backup. Fully unified.</li>
+      </ul>
+    </div>
+    <div class="wsg"><div class="wsi fi2">
+      <div class="dw" style="width:520px;padding:26px 28px;gap:0">
+
+        <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid rgba(0,209,163,.25);border-radius:12px;background:rgba(0,209,163,.04);margin-bottom:14px">
+          <span style="width:7px;height:7px;border-radius:50%;background:var(--p-green)"></span>
+          <span style="font-family:var(--display);font-size:14px;font-weight:800;color:var(--p-text)">Helios Onboarding</span>
+          <span style="font-family:var(--mono);font-size:8px;color:var(--p-muted);margin-left:4px">Single entry point for all environments</span>
+          <span class="badge b-ok" style="margin-left:auto">Unified</span>
+        </div>
+
+        <div style="display:flex;justify-content:center;gap:2px;margin-bottom:2px"><div style="width:1px;height:14px;background:rgba(0,209,163,.2)"></div></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:4px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <div style="width:40px;height:40px;border-radius:50%;border:1.5px solid var(--p-green);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;font-weight:800;color:var(--p-green)">OP</div>
+            <div style="width:1px;height:8px;background:rgba(0,209,163,.15)"></div>
+            <div style="width:100%;padding:6px 8px;border:1px solid rgba(255,255,255,.08);border-radius:7px;background:rgba(255,255,255,.02);text-align:center">
+              <div style="font-family:var(--mono);font-size:7px;color:var(--p-purple);font-weight:800;letter-spacing:.1em;margin-bottom:3px">SYSTEM</div>
+              <div style="font-family:var(--display);font-size:10px;font-weight:700;color:var(--p-text)">Cluster Claim</div>
+            </div>
+            <div style="width:1px;height:6px;background:rgba(255,255,255,.06)"></div>
+            <div style="width:100%;padding:6px 8px;border:1px solid rgba(255,255,255,.08);border-radius:7px;background:rgba(255,255,255,.02);text-align:center">
+              <div style="font-family:var(--mono);font-size:7px;color:var(--p-blue);font-weight:800;letter-spacing:.1em;margin-bottom:3px">INFRA</div>
+              <div style="font-family:var(--display);font-size:10px;font-weight:700;color:var(--p-text)">Access Mgmt</div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <div style="width:40px;height:40px;border-radius:50%;border:1.5px solid var(--p-blue);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;font-weight:800;color:var(--p-blue)">NGCE</div>
+            <div style="width:1px;height:8px;background:rgba(96,165,250,.15)"></div>
+            <div style="width:100%;padding:6px 8px;border:1px solid rgba(255,255,255,.08);border-radius:7px;background:rgba(255,255,255,.02);text-align:center">
+              <div style="font-family:var(--mono);font-size:7px;color:var(--p-purple);font-weight:800;letter-spacing:.1em;margin-bottom:3px">SYSTEM</div>
+              <div style="font-family:var(--display);font-size:10px;font-weight:700;color:var(--p-text)">Cluster Claim</div>
+            </div>
+            <div style="width:1px;height:6px;background:rgba(255,255,255,.06)"></div>
+            <div style="width:100%;padding:6px 8px;border:1px solid rgba(255,255,255,.08);border-radius:7px;background:rgba(255,255,255,.02);text-align:center">
+              <div style="font-family:var(--mono);font-size:7px;color:var(--p-blue);font-weight:800;letter-spacing:.1em;margin-bottom:3px">INFRA</div>
+              <div style="font-family:var(--display);font-size:10px;font-weight:700;color:var(--p-text)">Region + Access</div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <div style="width:40px;height:40px;border-radius:50%;border:1.5px solid var(--p-purple);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:8px;font-weight:800;color:var(--p-purple)">CCS</div>
+            <div style="width:1px;height:8px;background:rgba(167,139,250,.15)"></div>
+            <div style="width:100%;padding:6px 8px;border:1px solid rgba(255,255,255,.08);border-radius:7px;background:rgba(255,255,255,.02);text-align:center">
+              <div style="font-family:var(--mono);font-size:7px;color:var(--p-blue);font-weight:800;letter-spacing:.1em;margin-bottom:3px">INFRA</div>
+              <div style="font-family:var(--display);font-size:10px;font-weight:700;color:var(--p-text)">Region</div>
+            </div>
+            <div style="width:1px;height:6px;background:rgba(255,255,255,.06)"></div>
+            <div style="width:100%;padding:6px 8px;border:1px solid rgba(255,255,255,.08);border-radius:7px;background:rgba(255,255,255,.02);text-align:center">
+              <div style="font-family:var(--mono);font-size:7px;color:var(--p-blue);font-weight:800;letter-spacing:.1em;margin-bottom:3px">INFRA</div>
+              <div style="font-family:var(--display);font-size:10px;font-weight:700;color:var(--p-text)">SSO + AD/LDAP</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:center;margin:6px 0 2px"><div style="width:1px;height:14px;background:rgba(0,209,163,.2)"></div></div>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="padding:10px 14px;border:1px solid rgba(0,209,163,.25);border-radius:10px;background:rgba(0,209,163,.04);text-align:center">
+            <div style="font-family:var(--mono);font-size:7px;color:var(--p-green);font-weight:800;letter-spacing:.12em;margin-bottom:3px">DISCOVERY</div>
+            <div style="font-family:var(--display);font-size:13px;font-weight:800;color:var(--p-text)">Source Registration</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--p-muted);margin-top:2px">Includes SaaS Connection</div>
+          </div>
+          <div style="display:flex;justify-content:center"><div style="width:1px;height:8px;background:rgba(0,209,163,.15)"></div></div>
+          <div style="padding:8px 14px;border:1px solid rgba(255,255,255,.1);border-radius:10px;background:rgba(255,255,255,.02);text-align:center">
+            <div style="font-family:var(--mono);font-size:7px;color:var(--p-amber);font-weight:800;letter-spacing:.12em;margin-bottom:3px">PROTECTION</div>
+            <div style="font-family:var(--display);font-size:13px;font-weight:800;color:var(--p-text)">Global Policy</div>
+          </div>
+          <div style="display:flex;justify-content:center"><div style="width:1px;height:8px;background:rgba(0,209,163,.15)"></div></div>
+          <div style="padding:8px 14px;border:1px solid rgba(0,209,163,.25);border-radius:10px;background:rgba(0,209,163,.04);text-align:center">
+            <div style="font-family:var(--display);font-size:13px;font-weight:800;color:var(--p-green)">Protection &#10003;</div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:8px;background:rgba(245,158,11,.04);border:1px solid rgba(245,158,11,.15);margin-top:10px"><span style="font-size:9px">&#9888;</span><span style="font-family:var(--mono);font-size:8.5px;color:var(--p-amber);letter-spacing:.04em">Prerequisite &mdash; Cluster hardware setup for On-Prem &amp; NGCE is done outside Helios before starting the wizard.</span></div>
+      </div>
+    </div></div>
+  </div>
+  <div class="corner-dec">2 / 4</div>
+</div>
+
+<!-- ═══ S3: SSO + AD/LDAP ═══ -->
+<div class="slide" id="s3">
+  <div class="slide-header"><div class="brand"><span class="brand-dot"></span>DataProtect 2.0</div><div class="slide-tag">03 &middot; Access Management</div></div>
+  <div class="wl">
+    <div class="wc">
+      <div class="web a1" style="color:var(--blue)">03 &middot; SSO + AD/LDAP Mapping</div>
+      <div class="uv a1" style="margin:6px 0"><q>I had to create 50 user accounts manually in the CCS portal. We already have Okta.</q><cite>&mdash; backup admin</cite></div>
+      <h1 class="wt a2">Enterprise <strong>identity paths</strong> for CCS.</h1>
+      <p class="ws a3">Cloud services now supports <b>SSO via SAML/OIDC</b> with AD/LDAP group mapping for automatic role assignment.</p>
+      <div class="wr a3"><span class="wr-e">Replaces</span><span class="wr-t">Manual user creation in CCS portal</span></div>
+      <ul class="wp a4">
+        <li><b>SSO providers</b> &mdash; Okta, Azure AD, Ping, or any SAML/OIDC app.</li>
+        <li><b>Group &rarr; Role</b> &mdash; AD groups map to Helios roles (Admin, Operator, Viewer).</li>
+        <li><b>Zero manual provisioning</b> &mdash; new hires get access via group membership.</li>
+        <li><b>Consistent</b> &mdash; On-Prem uses AD/LDAP already. CCS now matches.</li>
+      </ul>
+    </div>
+    <div class="wsg"><div class="wsi fi2">
+      <div class="dw" style="width:460px">
+        <div class="dh"><div class="dt">Access Setup &mdash; CCS</div><span class="badge b-i">SSO Enabled</span></div>
+        <div class="ds">Identity Provider</div>
+        <div class="sso" style="border-color:rgba(96,165,250,.2)"><div class="sso-i" style="background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.25)">&#128274;</div><div style="flex:1"><div class="sso-n">Okta SAML 2.0</div><div class="sso-d">Connected &middot; 340 users synced &middot; last sync 4m ago</div></div><span class="badge b-ok">Active</span></div>
+        <div class="sso-a">&darr;</div>
+        <div class="ds">AD/LDAP Group Mapping</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div class="sso"><div class="sso-i" style="background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.25);font-size:10px">&#128101;</div><div style="flex:1"><div class="sso-n">CN=Backup-Admins</div><div class="sso-d">12 members</div></div><span style="font-family:var(--mono);font-size:9px;color:var(--p-dim)">&rarr;</span><span class="badge b-p">Admin</span></div>
+          <div class="sso"><div class="sso-i" style="background:rgba(0,209,163,.12);border:1px solid rgba(0,209,163,.25);font-size:10px">&#128101;</div><div style="flex:1"><div class="sso-n">CN=Backup-Operators</div><div class="sso-d">45 members</div></div><span style="font-family:var(--mono);font-size:9px;color:var(--p-dim)">&rarr;</span><span class="badge b-ok">Operator</span></div>
+          <div class="sso"><div class="sso-i" style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);font-size:10px">&#128101;</div><div style="flex:1"><div class="sso-n">CN=IT-ViewOnly</div><div class="sso-d">283 members</div></div><span style="font-family:var(--mono);font-size:9px;color:var(--p-dim)">&rarr;</span><span class="badge" style="background:rgba(255,255,255,.06);color:var(--p-muted)">Viewer</span></div>
+        </div>
+        <div class="sso-a">&darr;</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:rgba(0,209,163,.05);border:1px solid rgba(0,209,163,.18)"><span style="font-size:14px">&#10003;</span><div><div style="font-family:var(--display);font-size:12px;font-weight:800;color:var(--p-green)">340 users auto-provisioned</div><div style="font-size:10px;color:var(--p-text-2);margin-top:2px">Zero manual user creation &middot; Roles sync every 15 min</div></div></div>
+      </div>
+    </div></div>
+  </div>
+  <div class="corner-dec">3 / 4</div>
+</div>
+
+<!-- ═══ S4: CYERA MULTI-STEP ANIMATED PROTOTYPE ═══ -->
+<div class="slide" id="s4">
+  <div class="slide-header"><div class="brand"><span class="brand-dot"></span>DataProtect 2.0</div><div class="slide-tag">04 &middot; Discovery</div></div>
+  <div class="wl">
+    <div class="wc">
+      <div class="web a1" style="color:var(--purple)">04 &middot; Auto-Discovery via Cyera</div>
+      <div class="uv a1" style="margin:6px 0"><q>We found an unprotected prod database only after ransomware hit. Nobody knew it existed.</q><cite>&mdash; backup admin</cite></div>
+      <h1 class="wt a2">Discover what you <strong>didn't know</strong> you had.</h1>
+      <p class="ws a3">Cyera scans your environment and <b>classifies workloads by sensitivity</b>, then recommends protection policies during onboarding.</p>
+      <div class="wr a3"><span class="wr-e">Replaces</span><span class="wr-t">Manual source-by-source registration</span></div>
+      <ul class="wp a4">
+        <li><b>Dual path</b> &mdash; auto-detect via Cyera or manual registration.</li>
+        <li><b>Workload type selection</b> &mdash; databases, VMs, NAS, SaaS, cloud.</li>
+        <li><b>Classification-aware</b> &mdash; PII, PCI, Financial tags from Cyera.</li>
+        <li><b>Smart policies</b> &mdash; recommends protection per workload.</li>
+      </ul>
+    </div>
+    <div class="wsg"><div class="wsi fi2">
+
+      <!-- STEP 1: Choose path -->
+      <div id="cy-pick" class="dw" style="width:500px;align-items:center;text-align:center;gap:16px">
+        <div class="dh" style="width:100%"><div class="dt">Source Registration</div><span class="badge b-ok">Phase 3</span></div>
+        <div style="font-family:var(--display);font-size:14px;font-weight:800;color:var(--p-text)">How would you like to register sources?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%">
+          <div class="opt-card" onclick="cyStep('config')">
+            <div style="width:44px;height:44px;border-radius:14px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.25);display:flex;align-items:center;justify-content:center;font-size:20px">&#129302;</div>
+            <div style="font-family:var(--display);font-size:13px;font-weight:800;color:var(--p-text)">Auto-detect workloads</div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--p-purple);font-weight:700;letter-spacing:.08em">POWERED BY CYERA</div>
+            <div style="font-size:10px;color:var(--p-muted);line-height:1.4">Scans your infra and discovers all workloads with classification.</div>
+          </div>
+          <div class="opt-card" style="opacity:.55;cursor:default">
+            <div style="width:44px;height:44px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:20px">&#128221;</div>
+            <div style="font-family:var(--display);font-size:13px;font-weight:800;color:var(--p-text)">Manual registration</div>
+            <div style="font-family:var(--mono);font-size:8px;color:var(--p-muted);font-weight:700;letter-spacing:.08em">TRADITIONAL</div>
+            <div style="font-size:10px;color:var(--p-muted);line-height:1.4">Add sources by IP, hostname, or browse vCenter inventory.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2: Configure Cyera + select workload types -->
+      <div id="cy-config" class="dw" style="width:500px;gap:14px;display:none">
+        <div class="dh"><div class="dt">Cyera Configuration</div><span class="badge b-p">Auto-detect</span></div>
+        <div class="ds">Connection Details</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="padding:8px 10px;border-radius:8px;border:1px solid var(--p-border);background:var(--p-surface)"><div style="font-family:var(--mono);font-size:7.5px;color:var(--p-dim);letter-spacing:.06em;margin-bottom:3px">CYERA API ENDPOINT</div><div style="font-family:var(--mono);font-size:10px;color:var(--p-text)">api.cyera.io/v2</div></div>
+          <div style="padding:8px 10px;border-radius:8px;border:1px solid var(--p-border);background:var(--p-surface)"><div style="font-family:var(--mono);font-size:7.5px;color:var(--p-dim);letter-spacing:.06em;margin-bottom:3px">API TOKEN</div><div style="font-family:var(--mono);font-size:10px;color:var(--p-muted)">&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;xK9m</div></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:8px;background:rgba(0,209,163,.04);border:1px solid rgba(0,209,163,.15)"><span style="width:6px;height:6px;border-radius:50%;background:var(--p-green)"></span><span style="font-family:var(--mono);font-size:9px;color:var(--p-green);font-weight:700">Connection verified</span></div>
+        <div class="ds">Select Workload Types to Detect</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px" id="wl-types">
+          <div class="wl-chip on" data-t="db" onclick="togWL(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="6" rx="8" ry="4"/><path d="M4 6v6c0 2.2 3.6 4 8 4s8-1.8 8-4V6"/><path d="M4 12v6c0 2.2 3.6 4 8 4s8-1.8 8-4v-6"/></svg> Databases</div>
+          <div class="wl-chip on" data-t="vm" onclick="togWL(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg> Virtual Machines</div>
+          <div class="wl-chip on" data-t="nas" onclick="togWL(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="6" rx="1"/><rect x="2" y="14" width="20" height="6" rx="1"/></svg> NAS / File</div>
+          <div class="wl-chip" data-t="saas" onclick="togWL(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg> Cloud / S3</div>
+          <div class="wl-chip" data-t="k8s" onclick="togWL(this)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> Kubernetes</div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:4px">
+          <button class="btn-sec" onclick="cyStep('pick')">Back</button>
+          <button class="btn-pri" onclick="cyStep('scan')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>Start Detection</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Scanning animation -->
+      <div id="cy-scan" class="dw" style="width:500px;gap:14px;display:none;background:rgba(167,139,250,.02);border-color:rgba(167,139,250,.18)">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="position:relative;flex-shrink:0"><div class="scan-ring"></div><div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div></div>
+          <div style="flex:1"><div style="font-family:var(--display);font-size:12px;font-weight:800;color:var(--p-text);margin-bottom:3px" id="sc-t">Initializing Cyera scanner&hellip;</div><div style="font-family:var(--mono);font-size:9px;color:var(--p-muted)" id="sc-s">Connecting to endpoints</div></div>
+          <div id="sc-badge" style="display:none;padding:4px 10px;background:rgba(0,209,163,.1);border:1px solid rgba(0,209,163,.25);border-radius:99px;font-family:var(--mono);font-size:9px;font-weight:800;color:var(--p-green)">0 found</div>
+        </div>
+        <div><div style="display:flex;justify-content:space-between;margin-bottom:5px"><div style="font-family:var(--mono);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--p-dim)">Scan Progress</div><div style="font-family:var(--mono);font-size:9px;color:var(--p-dim)" id="sc-pct">0%</div></div><div class="shimmer" style="position:relative;height:5px;border-radius:99px;background:rgba(255,255,255,.06);overflow:hidden"><div id="sc-bar" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#7c3aed,#a78bfa);width:0;transition:width .4s ease"></div></div></div>
+        <div style="display:flex;flex-direction:column;gap:1px;max-height:80px;overflow:hidden"><div class="log-l" id="lg0">&#9656; Pinging infrastructure endpoints&hellip;</div><div class="log-l" id="lg1">&#9656; Scanning VMware vSphere&hellip;</div><div class="log-l" id="lg2">&#9656; Querying PostgreSQL hosts&hellip;</div><div class="log-l" id="lg3">&#9656; Probing Oracle listener&hellip;</div><div class="log-l" id="lg4">&#9656; Scanning NFS/CIFS shares&hellip;</div><div class="log-l" id="lg5">&#9656; Fingerprinting workload types&hellip;</div><div class="log-l" id="lg6">&#10003; Detection complete &mdash; 5 workloads</div></div>
+        <div id="sc-found" style="display:flex;flex-wrap:wrap;gap:5px;min-height:18px"></div>
+      </div>
+
+      <!-- STEP 4: Results -->
+      <div id="cy-results" class="dw" style="width:500px;gap:12px;display:none">
+        <div id="r-hdr" style="display:flex;align-items:center;gap:9px"><div style="width:8px;height:8px;border-radius:50%;background:var(--p-green);box-shadow:0 0 8px rgba(0,209,163,.7)"></div><div><div style="font-family:var(--display);font-size:12px;font-weight:700;color:var(--p-text)">Cyera &mdash; Detection Complete</div><div style="font-family:var(--mono);font-size:9px;color:var(--p-muted);margin-top:1px">5 workloads &middot; 14.8 TB discovered</div></div><div style="margin-left:auto;display:flex;gap:5px"><span class="badge b-ok">4 Ready</span><span class="badge b-w">1 Review</span></div></div>
+        <div style="background:var(--p-surface);border:1px solid var(--p-border);border-radius:10px;overflow:hidden"><div style="display:grid;grid-template-columns:22px 1fr 60px auto auto;gap:6px;padding:6px 10px;font-family:var(--mono);font-size:7.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--p-dim)"><span></span><span>Workload</span><span>Conf.</span><span>Class</span><span>Policy</span></div><div id="wl-tbody"></div></div>
+        <div id="r-cta" style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div><div style="font-family:var(--display);font-size:11px;font-weight:700;color:var(--p-text)">4 workloads ready to register</div><div style="font-family:var(--mono);font-size:9px;color:var(--p-muted);margin-top:2px">vcenter-prod needs one more credential</div></div><div style="display:flex;gap:6px"><button class="btn-grn">Register All 4 &rarr;</button><button class="btn-sec">Review</button></div></div>
+      </div>
+
+    </div></div>
+  </div>
+  <div class="corner-dec">4 / 4</div>
+</div>
+
+</div>
+
+<div class="nav"><button onclick="changeSlide(-1)">&larr;</button><div class="dots" id="dotsC"></div><button onclick="changeSlide(1)">&rarr;</button><div class="slide-counter" id="ctr">1 / 4</div></div>
+
+<script>
+var SL=document.querySelectorAll('.slide'),T=SL.length,C=0;
+var dots=document.getElementById('dotsC'),ctr=document.getElementById('ctr'),prog=document.getElementById('progressBar');
+for(var i=0;i<T;i++){var d=document.createElement('div');d.className='dot'+(i?'':' active');d.onclick=(function(i){return function(){goTo(i)}})(i);dots.appendChild(d);}
+prog.style.width=(1/T*100)+'%';
+function ac(el){var tg=parseFloat(el.getAttribute('data-count')),dl=parseInt(el.getAttribute('data-delay')||'0'),du=parseInt(el.getAttribute('data-dur')||'1200'),su=el.getAttribute('data-suffix')||'',st=performance.now()+dl;el.textContent='0'+su;function f(t){if(t<st){requestAnimationFrame(f);return;}var p=Math.min(1,(t-st)/du),e=1-Math.pow(1-p,3);el.textContent=Math.round(tg*e)+su;if(p<1)requestAnimationFrame(f);}requestAnimationFrame(f);}
+function tc(s){s.querySelectorAll('[data-count]').forEach(ac);}
+function goTo(n){SL[C].classList.remove('active');dots.children[C].classList.remove('active');C=Math.max(0,Math.min(T-1,n));var s=SL[C];s.querySelectorAll('[class*=a1],[class*=a2],[class*=a3],[class*=a4],[class*=fi2]').forEach(function(el){var c=el.className;el.className='';void el.offsetWidth;el.className=c;});s.classList.add('active');dots.children[C].classList.add('active');ctr.textContent=(C+1)+' / '+T;prog.style.width=((C+1)/T*100)+'%';tc(s);if(C===3)setTimeout(resetCy,100);}
+function changeSlide(dir){goTo(C+dir);}
+tc(SL[0]);
+document.addEventListener('keydown',function(e){if(['ArrowRight',' '].indexOf(e.key)>=0){e.preventDefault();changeSlide(1);}else if(e.key==='ArrowLeft'){e.preventDefault();changeSlide(-1);}var n=parseInt(e.key);if(n>=1&&n<=T){e.preventDefault();goTo(n-1);}});
+var tx=0;document.addEventListener('touchstart',function(e){tx=e.touches[0].clientX;});document.addEventListener('touchend',function(e){var dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50)changeSlide(dx<0?1:-1);});
+window.STITCH={prev:'vision-opening_1.html',next:'0.html'};
+(function(){var S=window.STITCH||{},orig=window.changeSlide;function ci(){for(var i=0;i<SL.length;i++)if(SL[i].classList.contains('active'))return i;return 0;}if(typeof orig==='function'){window.changeSlide=function(dir){var c=ci();if(dir>0&&c>=T-1&&S.next){location.href=S.next;return;}if(dir<0&&c<=0&&S.prev){location.href=S.prev+'?last=1';return;}return orig(dir);};}if(typeof window.goTo==='function'&&/last=1/.test(location.search))setTimeout(function(){window.goTo(T-1);},0);})();
+
+/* ── CYERA PROTOTYPE LOGIC ── */
+function show(id){document.getElementById(id).style.display='flex';}
+function hide(id){document.getElementById(id).style.display='none';}
+function fadeEl(el,dl){el.style.opacity='0';el.style.transform='translateY(8px)';el.style.transition='opacity .4s ease,transform .4s ease';setTimeout(function(){el.style.opacity='1';el.style.transform='translateY(0)';},dl);}
+function togWL(el){el.classList.toggle('on');}
+function resetCy(){show('cy-pick');hide('cy-config');hide('cy-scan');hide('cy-results');document.querySelectorAll('.log-l').forEach(function(l){l.classList.remove('vis','done');});var b=document.getElementById('sc-bar');if(b)b.style.width='0';var p=document.getElementById('sc-pct');if(p)p.textContent='0%';var f=document.getElementById('sc-found');if(f)f.innerHTML='';var bd=document.getElementById('sc-badge');if(bd)bd.style.display='none';var tb=document.getElementById('wl-tbody');if(tb)tb.innerHTML='';}
+function cyStep(s){
+  hide('cy-pick');hide('cy-config');hide('cy-scan');hide('cy-results');
+  if(s==='pick'){show('cy-pick');}
+  else if(s==='config'){show('cy-config');fadeEl(document.getElementById('cy-config'),60);}
+  else if(s==='scan'){show('cy-scan');runScan();}
+}
+
+var WK=[
+  {name:'prod-postgres-01',sub:'PostgreSQL 15.3 \xb7 450 GB',conf:94,tag:'PII Critical',tc:'var(--p-red)',tb:'rgba(239,68,68,.1)',tbd:'rgba(239,68,68,.3)',pol:'Daily-10PM-30d',pc:'var(--p-green)',dc:'var(--p-green)'},
+  {name:'oracle-erp-01',sub:'Oracle 19c \xb7 2.1 TB',conf:89,tag:'Financial',tc:'var(--p-amber)',tb:'rgba(245,158,11,.1)',tbd:'rgba(245,158,11,.3)',pol:'Hourly-90d',pc:'var(--p-blue)',dc:'var(--p-green)'},
+  {name:'vcenter-prod',sub:'vSphere 8 \xb7 14 VMs',conf:76,tag:'Needs Review',tc:'var(--p-amber)',tb:'rgba(245,158,11,.08)',tbd:'rgba(245,158,11,.25)',pol:'VM-Daily-7d',pc:'var(--p-muted)',dc:'var(--p-amber)'},
+  {name:'NAS-Primary',sub:'NetApp ONTAP \xb7 8.4 TB',conf:91,tag:'PII High',tc:'var(--p-red)',tb:'rgba(239,68,68,.08)',tbd:'rgba(239,68,68,.25)',pol:'Weekly-3m',pc:'var(--p-green)',dc:'var(--p-green)'},
+  {name:'aws-s3-prod',sub:'us-east-1 \xb7 3.8 TB',conf:97,tag:'Backup Arch.',tc:'#818cf8',tb:'rgba(99,102,241,.08)',tbd:'rgba(99,102,241,.25)',pol:'S3-WORM-Daily',pc:'var(--p-green)',dc:'var(--p-green)'}
+];
+var SS=[{p:8,t:'Pinging infrastructure\u2026',s:'Establishing connections'},{p:22,t:'Scanning VMware vSphere\u2026',s:'Found vcenter-prod',f:2},{p:38,t:'Querying PostgreSQL\u2026',s:'Found prod-postgres-01',f:0},{p:54,t:'Probing Oracle listener\u2026',s:'Found oracle-erp-01',f:1},{p:68,t:'Scanning NFS/CIFS\u2026',s:'Found NAS-Primary',f:3},{p:82,t:'Scanning AWS S3\u2026',s:'Found aws-s3-prod',f:4},{p:92,t:'Fingerprinting types\u2026',s:'Running classification'},{p:100,t:'Detection complete!',s:'5 workloads identified'}];
+
+function runScan(){
+  var sc=document.getElementById('cy-scan');sc.style.opacity='0';sc.style.transform='translateY(8px)';sc.style.transition='opacity .35s,transform .35s';requestAnimationFrame(function(){requestAnimationFrame(function(){sc.style.opacity='1';sc.style.transform='translateY(0)';});});
+  var step=0,fc=0,bar=document.getElementById('sc-bar'),pct=document.getElementById('sc-pct'),tt=document.getElementById('sc-t'),su=document.getElementById('sc-s'),bd=document.getElementById('sc-badge'),fo=document.getElementById('sc-found');
+  [0,300,640,980,1320,1660,1980,2260].forEach(function(t,i){setTimeout(function(){var l=document.getElementById('lg'+i);if(l){l.classList.add('vis');if(i===6)l.classList.add('done');}},t);});
+  var iv=setInterval(function(){
+    if(step>=SS.length){clearInterval(iv);setTimeout(showRes,400);return;}
+    var s=SS[step];bar.style.width=s.p+'%';pct.textContent=s.p+'%';tt.textContent=s.t;su.textContent=s.s;
+    if(s.f!==undefined){var w=WK[s.f];fc++;bd.style.display='block';bd.textContent=fc+' found';var ch=document.createElement('div');ch.style.cssText='display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:99px;background:rgba(0,209,163,.08);border:1px solid rgba(0,209,163,.2);font-family:var(--mono);font-size:8px;font-weight:700;color:#00d1a3;opacity:0;transition:opacity .3s';ch.textContent=w.name;fo.appendChild(ch);requestAnimationFrame(function(){requestAnimationFrame(function(){ch.style.opacity='1';});});}
+    step++;
+  },360);
+}
+function showRes(){
+  hide('cy-scan');show('cy-results');fadeEl(document.getElementById('r-hdr'),80);fadeEl(document.getElementById('r-cta'),240);
+  var tb=document.getElementById('wl-tbody');
+  WK.forEach(function(w,i){setTimeout(function(){
+    var r=document.createElement('div');r.className='wl-row';r.style.animationDelay=i*0.05+'s';
+    r.innerHTML='<div style="width:10px;height:10px;border-radius:50%;background:rgba(0,209,163,.2);border:1.5px solid '+w.dc+';margin:auto"></div><div><div style="font-family:var(--display);font-size:11px;font-weight:700;color:var(--p-text)">'+w.name+'</div><div style="font-family:var(--mono);font-size:8px;color:var(--p-muted)">'+w.sub+'</div></div><div><div style="font-family:var(--display);font-size:11px;font-weight:800;color:'+w.dc+'">'+w.conf+'%</div><div class="conf-bar"><div class="conf-fill" id="cf'+i+'" style="background:'+w.dc+';--w:'+w.conf+'%"></div></div></div><span style="font-family:var(--mono);font-size:7.5px;font-weight:800;padding:2px 7px;border-radius:99px;white-space:nowrap;background:'+w.tb+';color:'+w.tc+';border:1px solid '+w.tbd+'">'+w.tag+'</span><span style="font-family:var(--mono);font-size:8px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid rgba(0,209,163,.25);white-space:nowrap;color:'+w.pc+';background:rgba(0,209,163,.06)">'+w.pol+'</span>';
+    tb.appendChild(r);setTimeout(function(){var f=document.getElementById('cf'+i);if(f)f.classList.add('go');},220);
+  },i*190+320);});
+}
+</script>
+</body>
+</html>

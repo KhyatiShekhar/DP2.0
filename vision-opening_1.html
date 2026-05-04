@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataProtect 2.0 — Vision</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f2ec;--surface:#ffffff;--surface-2:#eeeae3;--surface-border:#e0dbd2;
+  --ink:#1a1a2e;--ink-2:#3d3d4d;--ink-3:#6b6b7b;--ink-4:#9a9aab;
+  --green:#00b894;--green-bg:rgba(0,184,148,.06);--green-border:rgba(0,184,148,.22);
+  --red:#e84430;--blue:#4f8fff;--amber:#f59e0b;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.04);--shadow-md:0 4px 20px rgba(0,0,0,.06);
+  --p-bg:#0b0f14;--p-surface:#151a22;--p-surface-2:#1b2029;
+  --p-border:rgba(255,255,255,.08);--p-border-2:rgba(255,255,255,.14);
+  --p-text:#e7ecf2;--p-text-2:#b8c0cd;--p-muted:#8891a0;--p-dim:#5a6370;
+  --p-green:#00d1a3;--p-red:#ef4444;--p-amber:#f59e0b;
+  --mono:'DM Mono',monospace;--display:'Plus Jakarta Sans',sans-serif;--body:'Outfit',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidden;height:100vh;width:100vw;-webkit-font-smoothing:antialiased}
+.deck{width:100%;height:100vh;position:relative}
+.slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:30px 56px 80px;opacity:0;pointer-events:none;transition:opacity .5s ease;overflow-y:auto;overflow-x:hidden;background:var(--bg)}
+.slide.active{opacity:1;pointer-events:all}
+
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,184,148,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,184,148,.04) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.bg-blob{position:fixed;border-radius:50%;filter:blur(140px);opacity:.08;pointer-events:none;z-index:0}
+.blob1{width:600px;height:600px;background:var(--green);top:-200px;right:-100px;animation:bd 14s ease-in-out infinite alternate}
+.blob2{width:500px;height:500px;background:var(--blue);bottom:-150px;left:-100px;animation:bd 18s ease-in-out infinite alternate-reverse}
+@keyframes bd{from{transform:translate(0,0) scale(1)}to{transform:translate(40px,30px) scale(1.1)}}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+.slide.active .a1{animation:fadeUp .5s ease forwards .1s;opacity:0}
+.slide.active .a2{animation:fadeUp .5s ease forwards .2s;opacity:0}
+.slide.active .a3{animation:fadeUp .5s ease forwards .3s;opacity:0}
+.slide.active .a4{animation:fadeUp .5s ease forwards .4s;opacity:0}
+.slide.active .a5{animation:fadeUp .5s ease forwards .5s;opacity:0}
+.slide.active .a6{animation:fadeUp .5s ease forwards .6s;opacity:0}
+.slide.active .fi1{animation:fadeIn .6s ease forwards .3s;opacity:0}
+.slide.active .fi2{animation:fadeIn .6s ease forwards .4s;opacity:0}
+.slide.active .fi3{animation:fadeIn .6s ease forwards .5s;opacity:0}
+.slide.active .fi4{animation:fadeIn .6s ease forwards .6s;opacity:0}
+.slide.active .fi5{animation:fadeIn .6s ease forwards .7s;opacity:0}
+
+/* NAV */
+.nav{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;z-index:100;background:rgba(245,242,236,.92);backdrop-filter:blur(16px);border:1px solid var(--surface-border);border-radius:100px;padding:9px 22px;box-shadow:var(--shadow-md)}
+.nav button{background:none;border:none;color:var(--ink-4);cursor:pointer;font-size:16px;padding:4px 8px;transition:color .2s;font-family:var(--body)}
+.nav button:hover{color:var(--green)}
+.nav .dots{display:flex;gap:6px;align-items:center}
+.nav .dot{width:6px;height:6px;border-radius:50%;background:var(--surface-border);transition:all .3s;cursor:pointer}
+.nav .dot.active{background:var(--green);width:18px;border-radius:4px}
+.slide-counter{font-family:var(--mono);font-size:10px;color:var(--ink-4);min-width:44px;text-align:center}
+.progress-bar{position:fixed;top:0;left:0;height:2px;background:var(--green);transition:width .5s ease;z-index:200;box-shadow:0 0 10px var(--green)}
+
+.slide-header{position:absolute;top:22px;left:56px;right:56px;display:flex;align-items:center;justify-content:space-between;z-index:10}
+.brand{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);display:flex;align-items:center;gap:8px}
+.brand-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+.slide-tag{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4)}
+.corner-dec{position:absolute;bottom:88px;right:56px;font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);opacity:.35}
+
+/* ═══════════════════════════════════════════
+   SLIDE 1 — TITLE
+   ═══════════════════════════════════════════ */
+.title-center{max-width:900px;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px}
+.title-eb{font-family:var(--mono);font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--green);font-weight:700}
+.title-h{font-family:var(--display);font-size:clamp(52px,6vw,88px);font-weight:800;line-height:.98;letter-spacing:-.04em;color:var(--ink)}
+.title-h strong{color:var(--green)}
+.title-sub{font-size:clamp(17px,1.6vw,22px);color:var(--ink-3);line-height:1.55;margin-top:14px;max-width:52ch}
+.title-sub b{color:var(--ink);font-weight:700}
+.title-line{width:48px;height:2px;background:var(--green);border-radius:99px;margin-top:10px}
+.team-row{display:flex;gap:10px;margin-top:24px;flex-wrap:wrap;justify-content:center}
+.team-chip{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--surface);border:1px solid var(--surface-border);border-radius:100px;box-shadow:var(--shadow-sm);transition:all .25s}
+.team-chip:hover{border-color:var(--green-border);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.team-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--display);font-size:11px;font-weight:800;color:white;flex-shrink:0}
+.team-name{font-family:var(--display);font-size:13px;font-weight:700;color:var(--ink)}
+.team-role{font-family:var(--mono);font-size:9px;color:var(--ink-4);letter-spacing:.04em}
+
+/* ═══════════════════════════════════════════
+   SLIDE 2 — REALITY CHECK (challenges)
+   ═══════════════════════════════════════════ */
+.rc-center{max-width:1080px;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center}
+.rc-eb{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--red);font-weight:700}
+.rc-title{font-family:var(--display);font-size:clamp(36px,4.5vw,64px);font-weight:800;line-height:1.02;letter-spacing:-.035em;color:var(--ink);margin-top:14px}
+.rc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;margin-top:40px}
+.rc-card{background:var(--surface);border:1px solid var(--surface-border);border-radius:16px;padding:24px 24px 22px;text-align:left;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;transition:all .25s}
+.rc-card:hover{border-color:rgba(232,68,48,.2);transform:translateY(-1px);box-shadow:var(--shadow-md)}
+.rc-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--red);opacity:.5}
+.rc-card-h{display:flex;align-items:flex-start;gap:14px}
+.rc-x{width:24px;height:24px;border-radius:50%;background:rgba(232,68,48,.08);border:1.5px solid rgba(232,68,48,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rc-x svg{width:12px;height:12px}
+.rc-illo{width:54px;height:54px;border-radius:14px;background:linear-gradient(180deg,rgba(232,68,48,.07),rgba(232,68,48,.02));border:1px solid rgba(232,68,48,.22);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;flex-shrink:0;position:relative;overflow:hidden}
+.rc-illo svg{width:26px;height:26px;display:block}
+.rc-illo .rc-stage{font-family:var(--mono);font-size:7.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--red);opacity:.85;line-height:1}
+.rc-card-title{font-family:var(--display);font-size:17px;font-weight:800;color:var(--red);letter-spacing:-.01em;line-height:1.2;margin-top:4px}
+.rc-card-desc{font-size:13.5px;color:var(--ink-3);line-height:1.5}
+.rc-quote{font-family:var(--body);font-size:13px;font-style:italic;color:var(--ink-4);padding-left:14px;border-left:2px solid var(--red);line-height:1.55;margin-top:4px}
+.rc-banner{background:rgba(232,68,48,.04);border:1px solid rgba(232,68,48,.18);border-radius:14px;padding:16px 22px;margin-top:24px;width:100%;display:flex;align-items:center;gap:12px}
+.rc-banner-ico{width:20px;height:20px;border-radius:50%;background:rgba(232,68,48,.1);border:1px solid rgba(232,68,48,.25);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.rc-banner-txt{font-family:var(--display);font-size:15px;font-weight:600;color:var(--ink-2);font-style:italic;line-height:1.5}
+
+/* ═══════════════════════════════════════════
+   SLIDE 3 — BROKEN MODEL
+   ═══════════════════════════════════════════ */
+.bm-layout{display:grid;grid-template-columns:1fr 1.1fr;gap:72px;width:100%;max-width:1200px;align-items:center}
+.bm-copy{display:flex;flex-direction:column;gap:16px;max-width:460px}
+.bm-eb{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--red);font-weight:700}
+.bm-title{font-family:var(--display);font-size:clamp(38px,4.5vw,62px);font-weight:800;line-height:1.02;letter-spacing:-.035em;color:var(--ink)}
+.bm-quote{padding:18px 22px;background:rgba(232,68,48,.04);border-left:3px solid var(--red);border-radius:0 12px 12px 0;margin-top:8px}
+.bm-quote-txt{font-family:var(--display);font-size:17px;font-weight:600;font-style:italic;color:var(--ink-2);line-height:1.55}
+
+/* Dark card widget for broken model */
+.bm-illo-wrap{background:var(--p-bg);border:1px solid var(--p-border);border-radius:20px;padding:24px 28px;display:flex;flex-direction:column;gap:14px;color:var(--p-text);box-shadow:0 40px 100px rgba(0,0,0,.22),0 0 0 1px rgba(232,68,48,.06)}
+.bm-wh{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--p-muted);font-weight:600;text-align:right}
+
+/* ── Broken-cycle illustration ── */
+.bm-cycle{position:relative;width:100%;aspect-ratio:1;max-width:360px;margin:0 auto}
+.bm-cycle-svg{width:100%;height:100%}
+.bm-cycle-svg circle:not(.bm-roam):not(.bm-core-glow),
+.bm-cycle-svg path{opacity:0;animation:bmDraw .6s ease forwards}
+.slide.active .bm-cycle-svg circle:not(.bm-roam):not(.bm-core-glow){animation-delay:.5s}
+.slide.active .bm-cycle-svg path:nth-of-type(1){animation-delay:.6s}
+.slide.active .bm-cycle-svg path:nth-of-type(2){animation-delay:.75s}
+.slide.active .bm-cycle-svg path:nth-of-type(3){animation-delay:.9s}
+.slide.active .bm-cycle-svg path:nth-of-type(4){animation-delay:1.05s}
+@keyframes bmDraw{from{opacity:0;transform:scale(.96);transform-origin:50% 50%}to{opacity:1;transform:scale(1)}}
+
+/* Centre red glow — pulses with the gap cracks */
+.bm-core-glow{transform-origin:180px 180px;opacity:0;animation:bmCoreGlow 2.4s ease-in-out infinite 1.4s}
+@keyframes bmCoreGlow{0%,100%{opacity:.45;transform:scale(.95)}50%{opacity:.95;transform:scale(1.15)}}
+
+/* Per-gap pulsing X cracks — staggered so the eye sees the breaks one at a time */
+.bm-cycle-svg .bm-gap{transform-origin:center;opacity:0;animation:bmGapPulse 2.4s ease-in-out infinite}
+.bm-cycle-svg .bm-gap.g1{transform-origin:293px 162px;animation-delay:1.4s}
+.bm-cycle-svg .bm-gap.g2{transform-origin:216px 300px;animation-delay:1.7s}
+.bm-cycle-svg .bm-gap.g3{transform-origin:66px 214px;animation-delay:2.0s}
+.bm-cycle-svg .bm-gap.g4{transform-origin:142px 66px;animation-delay:2.3s}
+@keyframes bmGapPulse{
+  0%,100%{opacity:.45;transform:scale(.85);filter:none}
+  45%{opacity:1;transform:scale(1.4);filter:drop-shadow(0 0 6px rgba(239,68,68,.85))}
+  60%{opacity:.85;transform:scale(1.15)}
+}
+
+/* Roaming red dot tracing the broken arcs */
+.bm-roam{opacity:0;animation:bmRoam 8s linear infinite 1.6s;filter:drop-shadow(0 0 6px rgba(239,68,68,.8))}
+@keyframes bmRoam{
+  /* arc 1: top → right */
+  0%{opacity:0;transform:translate(180px,60px)}
+  3%{opacity:1}
+  18%{opacity:1;transform:translate(284px,138px)}
+  20%{opacity:0;transform:translate(284px,138px) scale(.4)}     /* hit the X — vanishes */
+  /* arc 2: right → bottom */
+  25%{opacity:0;transform:translate(286px,184px)}
+  28%{opacity:1}
+  43%{opacity:1;transform:translate(230px,285px)}
+  45%{opacity:0;transform:translate(230px,285px) scale(.4)}
+  /* arc 3: bottom → left */
+  50%{opacity:0;transform:translate(186px,300px)}
+  53%{opacity:1}
+  68%{opacity:1;transform:translate(80px,232px)}
+  70%{opacity:0;transform:translate(80px,232px) scale(.4)}
+  /* arc 4: left → top */
+  75%{opacity:0;transform:translate(62px,178px)}
+  78%{opacity:1}
+  93%{opacity:1;transform:translate(122px,76px)}
+  95%,100%{opacity:0;transform:translate(122px,76px) scale(.4)}
+}
+
+.bm-stage{position:absolute;font-family:var(--mono);font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:var(--p-text);background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);padding:5px 10px;border-radius:99px;display:inline-flex;align-items:center;gap:6px;opacity:0;animation:bmStageIn .5s ease forwards}
+.bm-stage .dot{width:5px;height:5px;border-radius:50%;background:var(--p-red);box-shadow:0 0 6px rgba(239,68,68,.7)}
+.bm-stage.s-disc{top:-8px;left:50%;--bm-tx:-50%;--bm-ty:0;animation-delay:.7s}
+.bm-stage.s-prot{top:50%;right:-12px;--bm-tx:0;--bm-ty:-50%;animation-delay:.85s}
+.bm-stage.s-mon{bottom:-8px;left:50%;--bm-tx:-50%;--bm-ty:0;animation-delay:1s}
+.bm-stage.s-rec{top:50%;left:-14px;--bm-tx:0;--bm-ty:-50%;animation-delay:1.15s}
+@keyframes bmStageIn{from{opacity:0;transform:translate(var(--bm-tx),calc(var(--bm-ty) + 14px))}to{opacity:1;transform:translate(var(--bm-tx),var(--bm-ty))}}
+
+.bm-cycle-core{position:absolute;top:50%;left:50%;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;width:120px;padding:14px 12px;border-radius:14px;background:radial-gradient(circle at 50% 30%,rgba(239,68,68,.1),transparent 70%);opacity:0;transform:translate(-50%,-50%);animation:bmCoreIn .5s ease forwards 1.3s}
+@keyframes bmCoreIn{from{opacity:0;transform:translate(-50%,calc(-50% + 14px))}to{opacity:1;transform:translate(-50%,-50%)}}
+.bm-cycle-core svg{margin-bottom:2px}
+.bm-core-l1{font-family:var(--display);font-size:13px;font-weight:800;color:var(--p-text);letter-spacing:-.01em}
+.bm-core-l2{font-family:var(--display);font-size:13px;font-weight:800;color:var(--p-red);letter-spacing:-.01em;line-height:1}
+
+.bm-tagstrip{display:flex;gap:8px;margin-top:6px}
+.bm-tag{flex:1;display:flex;flex-direction:column;gap:2px;padding:10px 12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-left:2px solid var(--p-red);border-radius:0 10px 10px 0;opacity:0;animation:fadeUp .4s ease forwards}
+.bm-tag b{font-family:var(--display);font-size:13px;font-weight:800;color:var(--p-text);letter-spacing:-.01em}
+.bm-tag span{font-family:var(--body);font-size:11px;color:var(--p-muted);line-height:1.4}
+.slide.active .bm-tag:nth-child(1){animation-delay:1.4s}
+.slide.active .bm-tag:nth-child(2){animation-delay:1.5s}
+.slide.active .bm-tag:nth-child(3){animation-delay:1.6s}
+
+/* ═══════════════════════════════════════════
+   SLIDE 4 — CORE SHIFT
+   ═══════════════════════════════════════════ */
+.cs-center{max-width:1100px;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center}
+.cs-eb{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--green);font-weight:700}
+.cs-title{font-family:var(--display);font-size:clamp(34px,4vw,56px);font-weight:800;line-height:1.08;letter-spacing:-.03em;color:var(--ink);margin-top:16px;max-width:18ch}
+.cs-title .red{color:var(--red)}
+.cs-title .grn{color:var(--green);text-decoration:underline;text-decoration-color:var(--green);text-underline-offset:4px;text-decoration-thickness:3px}
+.cs-compare{display:grid;grid-template-columns:1fr auto 1fr;gap:28px;align-items:center;margin-top:48px;width:100%;max-width:960px}
+.cs-card{border-radius:18px;padding:28px 30px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center}
+.cs-card.old{background:var(--surface);border:1px solid var(--surface-border);box-shadow:var(--shadow-sm)}
+.cs-card.new{background:var(--surface);border:2px solid var(--green-border);box-shadow:0 4px 24px rgba(0,184,148,.1)}
+.cs-card-label{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:700}
+.cs-card.old .cs-card-label{color:var(--ink-4)}
+.cs-card.new .cs-card-label{color:var(--green)}
+.cs-steps{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+.cs-step{font-family:var(--display);font-size:14px;font-weight:700;padding:8px 18px;border-radius:100px;letter-spacing:-.005em}
+.cs-card.old .cs-step{background:var(--surface-2);color:var(--ink-3);border:1px solid var(--surface-border)}
+.cs-card.new .cs-step{background:rgba(0,184,148,.08);color:var(--green);border:1px solid var(--green-border)}
+.cs-arr{font-family:var(--mono);font-size:11px;color:var(--ink-4)}
+.cs-big-arr{display:flex;align-items:center;justify-content:center}
+.cs-big-arr svg{width:40px;height:40px}
+
+/* ─── S2: REALITY CHECK · horizontal rail ─── */
+.rail-shell{width:100%;max-width:1280px;display:flex;flex-direction:column;gap:0;align-items:stretch}
+.rail-hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;margin-bottom:24px}
+.rail-eb{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;color:var(--red)}
+.rail-title{font-family:var(--display);font-size:clamp(28px,3.2vw,50px);font-weight:800;line-height:1.03;letter-spacing:-.04em;color:var(--ink)}
+.rail-title .accent{color:var(--green)}
+.rail-sub{font-size:13.5px;color:var(--ink-3);line-height:1.6;max-width:58ch}
+.rail-sub b{color:var(--ink-2);font-weight:600}
+.rail-section{display:flex;flex-direction:column;gap:0;width:100%}
+.rail{display:flex;align-items:stretch;gap:0;width:100%}
+.rail-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:0;min-width:0}
+.col-top{display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:10px}
+.r-node{width:42px;height:42px;border-radius:50%;background:var(--surface);border:2px solid rgba(232,68,48,.28);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-sm);position:relative;flex-shrink:0;transition:border-color .25s,box-shadow .25s}
+.r-node:hover{border-color:rgba(232,68,48,.6);box-shadow:0 0 0 5px rgba(232,68,48,.08)}
+.r-node svg{width:18px;height:18px}
+.r-node-num{position:absolute;top:-6px;right:-6px;width:15px;height:15px;border-radius:50%;background:var(--red);color:#fff;font-family:var(--mono);font-size:7.5px;font-weight:800;display:flex;align-items:center;justify-content:center;line-height:1}
+.r-stage-lbl{font-family:var(--mono);font-size:8px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--red);opacity:.75}
+.r-drop{width:1px;height:14px;background:rgba(232,68,48,.2);flex-shrink:0}
+.r-card{background:var(--surface);border:1px solid var(--surface-border);border-top:3px solid rgba(232,68,48,.32);border-radius:12px;padding:16px 16px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 2px 12px rgba(0,0,0,.07),0 0 0 1px rgba(0,0,0,.04);width:100%;flex:1;transition:border-top-color .25s,box-shadow .25s,transform .25s}
+.r-card:hover{border-top-color:rgba(232,68,48,.7);box-shadow:var(--shadow-md);transform:translateY(-3px)}
+.rail-col:last-child .r-card{border-top-color:rgba(232,68,48,.65);background:rgba(252,248,246,1)}
+.r-cannot{font-family:var(--display);font-size:13.5px;font-weight:800;color:var(--red);line-height:1.2;letter-spacing:-.01em}
+.r-desc{font-size:12px;color:var(--ink-3);line-height:1.55}
+.r-quote{font-size:11px;font-style:italic;color:var(--ink-4);line-height:1.5;padding-top:8px;border-top:1px solid var(--surface-border);margin-top:auto}
+.r-arrow{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;flex-shrink:0;width:36px;padding-top:80px;gap:4px}
+.r-arrow svg{width:20px;height:20px;flex-shrink:0}
+.r-arrow-lbl{font-family:var(--mono);font-size:7px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(232,68,48,.38);white-space:nowrap}
+.rb-banner{display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 20px;background:rgba(232,68,48,.04);border:1px solid rgba(232,68,48,.16);border-radius:12px;flex-shrink:0;margin-top:20px}
+.rb-banner svg{flex-shrink:0}
+.rb-banner-txt{font-family:var(--display);font-size:13px;font-weight:600;color:var(--ink-2);font-style:italic;line-height:1.4}
+
+@media(max-width:1100px){
+  .rc-grid{grid-template-columns:1fr}
+  .bm-layout{grid-template-columns:1fr;gap:36px}
+  .cs-compare{grid-template-columns:1fr;gap:16px}
+  .rail{flex-direction:column;gap:18px}
+  .r-arrow{display:none}
+}
+
+/* ============ STITCH NAV (cross-file tabs) ============ */
+.stitch-nav{position:fixed;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--surface-border);border-radius:100px;padding:5px 7px;box-shadow:0 4px 20px rgba(0,0,0,.06);z-index:60;font-family:var(--mono)}
+.st-tab{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-4);padding:6px 13px;border-radius:100px;font-weight:700;text-decoration:none;transition:color .2s,background .25s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer}
+.st-tab:hover{color:var(--ink)}
+.st-tab.active{color:#fff;background:var(--green);box-shadow:0 1px 4px rgba(0,184,148,.2);position:relative}
+.st-tab.active::before{content:'';position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:stitchDot 2.2s ease-in-out infinite}
+@keyframes stitchDot{0%,100%{opacity:1;transform:translateX(-50%) scale(1)}50%{opacity:.45;transform:translateX(-50%) scale(1.35)}}
+.st-sub{font-size:8.5px;letter-spacing:.1em;opacity:.78;font-weight:600}.st-tab.active .st-sub{opacity:.92}
+.st-sep{color:var(--ink-4);opacity:.35;font-size:10px;user-select:none}
+@media (max-width:900px){.stitch-nav{top:10px;padding:4px 6px}.st-tab{padding:5px 10px;font-size:9px;letter-spacing:.12em}}
+</style>
+</head>
+<body>
+<div class="stitch-nav">
+  <a class="st-tab active" href="vision-opening_1.html">Vision</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="a0.html">Discover</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="0.html">Protect</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="1.html">Monitor</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="4.html">Recover</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="sources-reimagined.html">Examples</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="5.html">Additionals</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="conclusion.html">Closing</a>
+</div>
+<div class="bg-grid"></div>
+<div class="bg-blob blob1"></div>
+<div class="bg-blob blob2"></div>
+<div class="progress-bar" id="progressBar"></div>
+
+<div class="deck">
+
+<!-- ═══════════ S1: TITLE ═══════════ -->
+<div class="slide active" id="s1">
+  <div class="slide-header">
+    <div class="brand"><span class="brand-dot"></span>Cohesity</div>
+    <div class="slide-tag">DataProtect 2.0</div>
+  </div>
+
+  <div class="title-center">
+    <div class="title-eb a1">Cohesity DataProtect</div>
+    <h1 class="title-h a2">Data<strong>Protect</strong> 2.0</h1>
+    <p class="title-sub a3">Rethinking the data resilience and intelligence journey — from passive storage to an <b>active, intelligent protection system</b>.</p>
+    <div class="title-line a4"></div>
+
+    <div class="team-row a5">
+      <div class="team-chip">
+        <div class="team-av" style="background:linear-gradient(135deg,#6366f1,#3b82f6)">K</div>
+        <div><div class="team-name">Khyati</div></div>
+      </div>
+      <div class="team-chip">
+        <div class="team-av" style="background:linear-gradient(135deg,#00b894,#38bdf8)">O</div>
+        <div><div class="team-name">Oshal</div></div>
+      </div>
+      <div class="team-chip">
+        <div class="team-av" style="background:linear-gradient(135deg,#f59e0b,#f97316)">S</div>
+        <div><div class="team-name">Sindhura</div></div>
+      </div>
+      <div class="team-chip">
+        <div class="team-av" style="background:linear-gradient(135deg,#ef4444,#ec4899)">S</div>
+        <div><div class="team-name">Siddharth</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="corner-dec">1 / 3 · Vision</div>
+</div>
+
+
+<!-- ═══════════ S2: REALITY CHECK (horizontal rail) ═══════════ -->
+<div class="slide" id="s2">
+  <div class="slide-header">
+    <div class="brand"><span class="brand-dot"></span>DataProtect 2.0</div>
+    <div class="slide-tag">02 — Reality Check</div>
+  </div>
+
+  <div class="rail-shell">
+
+    <!-- Hero -->
+    <div class="rail-hero">
+      <div class="rail-eb a1">02 — Reality Check</div>
+      <h1 class="rail-title a2"><span class="accent">Resiliency</span> belongs across the ecosystem.<br>Today, we don't have it.</h1>
+      <p class="rail-sub a3">The pipeline drops the user at every stage. The goal: thread resiliency through <b>discover &rarr; protect &rarr; monitor &rarr; recover</b> &mdash; and the agent layer above.</p>
+    </div>
+
+    <!-- Rail -->
+    <div class="rail-section">
+      <div class="rail">
+
+        <!-- DISCOVER -->
+        <div class="rail-col fi1">
+          <div class="col-top">
+            <div class="r-node">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round">
+                <circle cx="11" cy="11" r="7"/>
+                <path d="M16.5 16.5l4 4"/>
+                <path d="M8 11h6M11 8v6" opacity=".4" stroke-dasharray="2 2"/>
+              </svg>
+              <div class="r-node-num">1</div>
+            </div>
+            <div class="r-stage-lbl">Discover</div>
+          </div>
+          <div class="r-drop"></div>
+          <div class="r-card">
+            <div class="r-cannot">Cannot See His Data</div>
+            <div class="r-desc">Snapshots exist but are invisible artifacts. No understanding of how data evolves over time.</div>
+            <div class="r-quote">"I know backups are happening, but I don't know what I actually have."</div>
+          </div>
+        </div>
+
+        <div class="r-arrow fi1">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(232,68,48,.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6"/>
+          </svg>
+          <div class="r-arrow-lbl">then</div>
+        </div>
+
+        <!-- PROTECT -->
+        <div class="rail-col fi2">
+          <div class="col-top">
+            <div class="r-node">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round">
+                <path d="M12 3l8 4v5c0 5-8 9-8 9s-8-4-8-9V7z"/>
+                <path d="M9 12l2 2 4-4" opacity=".4" stroke-dasharray="2 2"/>
+              </svg>
+              <div class="r-node-num">2</div>
+            </div>
+            <div class="r-stage-lbl">Protect</div>
+          </div>
+          <div class="r-drop"></div>
+          <div class="r-card">
+            <div class="r-cannot">Cannot Verify Confidence</div>
+            <div class="r-desc">Success does not equal recoverability. No clear answer to whether a system can be recovered right now.</div>
+            <div class="r-quote">"I'll only know if it works&hellip; when it fails."</div>
+          </div>
+        </div>
+
+        <div class="r-arrow fi2">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(232,68,48,.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6"/>
+          </svg>
+          <div class="r-arrow-lbl">then</div>
+        </div>
+
+        <!-- MONITOR -->
+        <div class="rail-col fi3">
+          <div class="col-top">
+            <div class="r-node">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round">
+                <rect x="3" y="4" width="18" height="14" rx="2"/>
+                <path d="M3 9h18"/>
+                <path d="M8 15h4M8 12h8" opacity=".4" stroke-dasharray="2 2"/>
+                <path d="M17 14l-2 2M15 14l2 2"/>
+              </svg>
+              <div class="r-node-num">3</div>
+            </div>
+            <div class="r-stage-lbl">Monitor</div>
+          </div>
+          <div class="r-drop"></div>
+          <div class="r-card">
+            <div class="r-cannot">Cannot Explain the System</div>
+            <div class="r-desc">Policies are abstract. Outcomes are unclear. No way to confidently communicate protection status.</div>
+            <div class="r-quote">"I set a policy, but I can't clearly explain what it results in."</div>
+          </div>
+        </div>
+
+        <div class="r-arrow fi3">
+          <svg viewBox="0 0 24 24" fill="none" stroke="rgba(232,68,48,.45)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6"/>
+          </svg>
+          <div class="r-arrow-lbl">then</div>
+        </div>
+
+        <!-- RECOVER -->
+        <div class="rail-col fi4">
+          <div class="col-top">
+            <div class="r-node" style="border-color:rgba(232,68,48,.55);background:rgba(232,68,48,.04)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="1.8" stroke-linecap="round">
+                <path d="M4 16a8 8 0 1 1 3 6"/>
+                <path d="M4 8v8h8"/>
+                <circle cx="16" cy="12" r="1.5" fill="var(--red)"/>
+              </svg>
+              <div class="r-node-num">4</div>
+            </div>
+            <div class="r-stage-lbl" style="color:var(--red);opacity:1">Recover</div>
+          </div>
+          <div class="r-drop"></div>
+          <div class="r-card">
+            <div class="r-cannot">Cannot Act Proactively</div>
+            <div class="r-desc">Everything is reactive. No insights, no recommendations, no way to anticipate failure.</div>
+            <div class="r-quote">"I'm always responding, never anticipating."</div>
+          </div>
+        </div>
+
+      </div><!-- /rail -->
+
+    </div><!-- /rail-section -->
+
+  </div><!-- /rail-shell -->
+
+  <div class="corner-dec">2 / 3 · Vision</div>
+</div>
+
+
+<!-- ═══════════ S3: CORE SHIFT ═══════════ -->
+<div class="slide" id="s3">
+  <div class="slide-header">
+    <div class="brand"><span class="brand-dot"></span>DataProtect 2.0</div>
+    <div class="slide-tag">03 — The Core Shift</div>
+  </div>
+
+  <div class="cs-center">
+    <div class="cs-eb a1">04 — The Core Shift</div>
+    <h1 class="cs-title a2">We are shifting responsibility from the <span class="red">user</span> to the <span class="grn">system</span>.</h1>
+
+    <div class="cs-compare">
+      <!-- OLD -->
+      <div class="cs-card old fi1">
+        <div style="display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap">
+          <div class="cs-card-label">Passive System (Today)</div>
+          <span style="font-family:var(--mono);font-size:9px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;padding:3px 9px;border-radius:99px;color:var(--red);background:rgba(232,68,48,.08);border:1px solid rgba(232,68,48,.32)">DP issues</span>
+        </div>
+        <div class="cs-steps">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <span class="cs-step">Store</span>
+            <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.06em;color:var(--red);opacity:.85">DP-only</span>
+          </div>
+          <span class="cs-arr">→</span>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <span class="cs-step">Wait</span>
+            <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.06em;color:var(--red);opacity:.85">no insight</span>
+          </div>
+          <span class="cs-arr">→</span>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+            <span class="cs-step">Recover</span>
+            <span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.06em;color:var(--red);opacity:.85">no rehearsal</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="cs-big-arr fi2">
+        <svg viewBox="0 0 48 48" fill="none">
+          <path d="M8 24h28M28 16l10 8-10 8" stroke="var(--green)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <!-- NEW -->
+      <div class="cs-card new fi3">
+        <div class="cs-card-label">Active System (DP 2.0)</div>
+        <div class="cs-steps">
+          <span class="cs-step">Discover</span>
+          <span class="cs-arr">→</span>
+          <span class="cs-step">Protect</span>
+          <span class="cs-arr">→</span>
+          <span class="cs-step">Monitor</span>
+          <span class="cs-arr">→</span>
+          <span class="cs-step">Recover</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="corner-dec">3 / 3 · Vision</div>
+</div>
+
+</div>
+
+<div class="nav">
+  <button onclick="changeSlide(-1)">&larr;</button>
+  <div class="dots" id="dotsContainer"></div>
+  <button onclick="changeSlide(1)">&rarr;</button>
+  <div class="slide-counter" id="counter">1 / 3</div>
+</div>
+
+<script>
+const slides=document.querySelectorAll('.slide'),total=slides.length;let current=0;
+const dotsEl=document.getElementById('dotsContainer'),counterEl=document.getElementById('counter'),progEl=document.getElementById('progressBar');
+for(let i=0;i<total;i++){const d=document.createElement('div');d.className='dot'+(i===0?' active':'');d.addEventListener('click',()=>goTo(i));dotsEl.appendChild(d);}
+progEl.style.width=(1/total*100)+'%';
+
+function goTo(n){
+  slides[current].classList.remove('active');dotsEl.children[current].classList.remove('active');
+  current=Math.max(0,Math.min(total-1,n));
+  const s=slides[current];
+  s.querySelectorAll('[class*="a1"],[class*="a2"],[class*="a3"],[class*="a4"],[class*="a5"],[class*="a6"],[class*="fi1"],[class*="fi2"],[class*="fi3"],[class*="fi4"],[class*="fi5"]').forEach(el=>{const c=el.className;el.className='';void el.offsetWidth;el.className=c;});
+  s.classList.add('active');dotsEl.children[current].classList.add('active');
+  counterEl.textContent=(current+1)+' / '+total;progEl.style.width=((current+1)/total*100)+'%';
+}
+function changeSlide(dir){goTo(current+dir);}
+
+document.addEventListener('keydown',e=>{
+  if(['ArrowRight',' '].includes(e.key)){e.preventDefault();changeSlide(1);}
+  else if(e.key==='ArrowLeft'){e.preventDefault();changeSlide(-1);}
+  const num=parseInt(e.key);if(num>=1&&num<=total){e.preventDefault();goTo(num-1);}
+});
+let tx=0;document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX;});document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-tx;if(Math.abs(dx)>50)changeSlide(dx<0?1:-1);});
+
+/* ============ STITCH BRIDGE ============ */
+window.STITCH = {prev: null, next: 'a0.html'};
+(function(){
+  const _cs = window.changeSlide;
+  window.changeSlide = function(dir){
+    if(dir > 0 && current === total - 1 && window.STITCH.next){ window.location.href = window.STITCH.next; return; }
+    if(dir < 0 && current === 0 && window.STITCH.prev){ window.location.href = window.STITCH.prev + '?last=1'; return; }
+    _cs(dir);
+  };
+  if(location.search.indexOf('last=1') !== -1){ goTo(total - 1); }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataProtect 2.0 — Conclusion</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f2ec;--surface:#ffffff;--surface-2:#eeeae3;--surface-border:#e0dbd2;
+  --ink:#1a1a2e;--ink-2:#3d3d4d;--ink-3:#6b6b7b;--ink-4:#9a9aab;
+  --green:#00b894;--green-bg:rgba(0,184,148,.06);--green-border:rgba(0,184,148,.22);
+  --red:#e84430;--blue:#4f8fff;
+  --shadow-sm:0 1px 3px rgba(0,0,0,.04);--shadow-md:0 4px 20px rgba(0,0,0,.06);
+  --mono:'DM Mono',monospace;--display:'Plus Jakarta Sans',sans-serif;--body:'Outfit',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);overflow:hidden;height:100vh;width:100vw;-webkit-font-smoothing:antialiased;display:flex;align-items:center;justify-content:center}
+
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,184,148,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,184,148,.04) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.bg-blob{position:fixed;border-radius:50%;filter:blur(140px);opacity:.08;pointer-events:none;z-index:0}
+.blob1{width:600px;height:600px;background:var(--green);top:-200px;right:-100px;animation:bd 14s ease-in-out infinite alternate}
+.blob2{width:500px;height:500px;background:var(--blue);bottom:-150px;left:-100px;animation:bd 18s ease-in-out infinite alternate-reverse}
+@keyframes bd{from{transform:translate(0,0) scale(1)}to{transform:translate(40px,30px) scale(1.1)}}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.a1{animation:fadeUp .6s ease forwards .15s;opacity:0}
+.a2{animation:fadeUp .6s ease forwards .35s;opacity:0}
+.a3{animation:fadeUp .6s ease forwards .55s;opacity:0}
+.a4{animation:fadeUp .6s ease forwards .75s;opacity:0}
+
+.slide-header{position:fixed;top:22px;left:56px;right:56px;display:flex;align-items:center;justify-content:space-between;z-index:10}
+.brand{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);display:flex;align-items:center;gap:8px}
+.brand-dot{width:5px;height:5px;border-radius:50%;background:var(--green)}
+.slide-tag{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4)}
+.corner-dec{position:fixed;bottom:28px;right:56px;font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-4);opacity:.35}
+
+.cl-center{max-width:880px;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;z-index:1;padding:0 32px}
+
+.cl-statement{font-family:var(--display);font-size:clamp(30px,4vw,52px);font-weight:800;line-height:1.2;letter-spacing:-.03em;color:var(--ink);font-style:italic}
+.cl-statement strong{color:var(--ink);font-style:italic}
+.cl-green{color:var(--green);font-weight:800;font-style:italic}
+
+.cl-sub{font-family:var(--body);font-size:clamp(15px,1.3vw,18px);color:var(--ink-3);line-height:1.65;margin-top:30px;max-width:52ch}
+.cl-sub strong{color:var(--green);font-weight:700}
+
+.cl-pills{display:flex;align-items:center;gap:12px;margin-top:40px;flex-wrap:wrap;justify-content:center}
+.cl-pill{font-family:var(--display);font-size:14px;font-weight:700;padding:10px 24px;border-radius:100px;border:1px solid var(--surface-border);background:var(--surface);color:var(--ink-2);box-shadow:var(--shadow-sm);transition:all .25s;letter-spacing:-.005em;cursor:default}
+.cl-pill:hover{border-color:var(--green-border);color:var(--green);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+
+.cl-tagline{font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-4);margin-top:40px}
+.cl-tagline strong{color:var(--green);font-weight:700}
+
+/* ============ STITCH NAV (cross-file tabs) ============ */
+.stitch-nav{position:fixed;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:3px;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--surface-border);border-radius:100px;padding:5px 7px;box-shadow:0 4px 20px rgba(0,0,0,.06);z-index:60;font-family:var(--mono)}
+.st-tab{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-4);padding:6px 13px;border-radius:100px;font-weight:700;text-decoration:none;transition:color .2s,background .25s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;cursor:pointer}
+.st-tab:hover{color:var(--ink)}
+.st-tab.active{color:#fff;background:var(--green);box-shadow:0 1px 4px rgba(0,184,148,.2);position:relative}
+.st-tab.active::before{content:'';position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:stitchDot 2.2s ease-in-out infinite}
+@keyframes stitchDot{0%,100%{opacity:1;transform:translateX(-50%) scale(1)}50%{opacity:.45;transform:translateX(-50%) scale(1.35)}}
+.st-sub{font-size:8.5px;letter-spacing:.1em;opacity:.78;font-weight:600}.st-tab.active .st-sub{opacity:.92}
+.st-sep{color:var(--ink-4);opacity:.35;font-size:10px;user-select:none}
+@media (max-width:900px){.stitch-nav{top:10px;padding:4px 6px}.st-tab{padding:5px 10px;font-size:9px;letter-spacing:.12em}}
+
+/* Minimal back-button nav for this outro page */
+.outro-back{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;z-index:10}
+.outro-back button{width:36px;height:36px;border-radius:50%;border:1px solid var(--surface-border);background:var(--surface);color:var(--ink-3);font-size:18px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow-sm)}
+.outro-back button:hover{color:var(--green);border-color:var(--green-border);transform:translateY(-1px)}
+.outro-back .hint{font-family:var(--mono);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-4)}
+</style>
+</head>
+<body>
+<div class="stitch-nav">
+  <a class="st-tab" href="vision-opening_1.html">Vision</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="a0.html">Discover</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="0.html">Protect</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="1.html">Monitor</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="4.html">Recover</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="sources-reimagined.html">Examples</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab" href="5.html">Additionals</a>
+  <span class="st-sep">·</span>
+  <a class="st-tab active" href="conclusion.html">Closing</a>
+</div>
+<div class="bg-grid"></div>
+<div class="bg-blob blob1"></div>
+<div class="bg-blob blob2"></div>
+
+<div class="slide-header">
+  <div class="brand"><span class="brand-dot"></span>Cohesity</div>
+  <div class="slide-tag">The Vision</div>
+</div>
+
+<div class="cl-center">
+  <h1 class="cl-statement a1">We're not building a <strong>better backup tool.</strong><br>We're building a system that<br><span class="cl-green">eliminates uncertainty</span> in every<br>data protection decision.</h1>
+
+  <div class="cl-sub a2">A system that <strong>understands</strong> your data, <strong>learns</strong> from every action, and continuously adapts to keep you protected.</div>
+
+  <div class="cl-pills a3">
+    <span class="cl-pill">Discover</span>
+    <span class="cl-pill">Protect</span>
+    <span class="cl-pill">Monitor</span>
+    <span class="cl-pill">Recover</span>
+  </div>
+
+  <div class="cl-tagline a4">Cohesity · Data Protection <strong>2.0</strong></div>
+</div>
+
+<div class="corner-dec">Cohesity DP 2.0</div>
+
+<div class="outro-back">
+  <button onclick="window.location.href='6.html?last=1'" aria-label="Previous">&larr;</button>
+  <span class="hint">End of deck</span>
+</div>
+
+<script>
+window.STITCH = {prev: '6.html', next: null};
+document.addEventListener('keydown', e => {
+  if(e.key === 'ArrowLeft'){ e.preventDefault(); window.location.href = '6.html?last=1'; }
+});
+let tx=0;
+document.addEventListener('touchstart', e=>{tx=e.touches[0].clientX;});
+document.addEventListener('touchend', e=>{
+  const dx=e.changedTouches[0].clientX-tx;
+  if(dx > 50){ window.location.href='6.html?last=1'; }
+});
+</script>
+</body>
+</html>
